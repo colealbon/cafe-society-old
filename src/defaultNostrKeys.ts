@@ -1,8 +1,9 @@
-[
+import { NostrKey } from './db-fixture'
+const NostrKeys: NostrKey[] = [
     {
         "publicKey": "c753997e3b081c168288243bf61d35b20e1a64502a4305e4a6b33ace9fe20adc",
         "label": "cafe-society.news",
-        "lightning": "https://getalby.com/p/cafe",
+        "lightningAddress": "https://getalby.com/p/cafe",
         "follow": false,
         "ignore": false
     },
@@ -14,3 +15,4 @@
         "ignore": false
     }
 ]
+export default NostrKeys

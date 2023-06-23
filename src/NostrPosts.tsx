@@ -19,7 +19,7 @@ const NostrPosts = (props) => {
 
   createEffect(() => {
     const classifierEntry = props.classifiers.find((classifierEntry) => classifierEntry.id == props.category)
-    const classifierJSON = classifierEntry?.algorithm
+    const classifierJSON = classifierEntry?.model
     let classifierForCategory = new natural.BayesClassifier()
     if (`${classifierJSON}` != '' && `${classifierJSON}` != 'undefined') {
       classifierForCategory = natural.BayesClassifier.restore(JSON.parse(classifierJSON));

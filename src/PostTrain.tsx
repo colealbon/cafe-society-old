@@ -11,7 +11,7 @@ const PostTrain = (props) => {
     props.classifier().train()
     const classifierEntry = {
         id: props.category,
-        algorithm: JSON.stringify(props.classifier(), null, 2)
+        model: JSON.stringify(props.classifier(), null, 2)
         }
     props.putClassifier(classifierEntry)
   }

@@ -1,6 +1,6 @@
 import {
   createSignal,
-  Suspense,
+  // Suspense,
   Signal,
   createEffect,
   Component
@@ -16,7 +16,7 @@ import {
 } from '@solidjs/router';
 
 import {
-  fetchPosts,
+  // fetchPosts,
   cleanNostrPost
 } from './tools'
 
@@ -29,36 +29,37 @@ import Feeds from './Feeds';
 import Categories from './Categories';
 import Classifiers from './Classifiers';
 import CorsProxies from './CorsProxies';
-import Posts from './Posts';
+// import Posts from './Posts';
 import NavBar from './NavBar';
 import Main from './Main';
 
 import { DbFixture } from "./db-fixture";
 
-import defaultFeeds from './assets/defaultFeeds.json'
+import defaultFeeds from './defaultFeeds'
 import { Feed } from './db-fixture'
 
-import defaultCorsProxies from './assets/defaultCorsProxies.json'
+import defaultCorsProxies from './defaultCorsProxies'
 import { CorsProxy } from './db-fixture'
 
-import defaultNostrRelays from './assets/defaultNostrRelays.json'
+import defaultNostrRelays from './defaultNostrRelays'
 import { NostrRelay } from './db-fixture'
 
-import defaultNostrKeys from './assets/defaultNostrKeys.json'
+import defaultNostrKeys from './defaultNostrKeys'
 import { NostrKey } from './db-fixture'
 
-import defaultCategories from './assets/defaultCategories.json'
 import { Category } from './db-fixture'
 
-import defaultClassifiers from './assets/defaultClassifiers.json'
+import defaultClassifiers from './defaultClassifiers'
 import { Classifier } from './db-fixture'
 
-import defaultProcessed from './assets/defaultProcessed.json'
+import defaultProcessed from './defaultProcessed'
 import { ProcessedPost } from './db-fixture'
 
 import { createDexieArrayQuery } from "solid-dexie";
 
-import Heading from './Heading'
+import defaultCategories from './defaultCategories'
+
+// import Heading from './Heading'
 
 const navBarWidth = 250
 const fetcher = NostrFetcher.init();
@@ -83,7 +84,7 @@ const App: Component = () => {
   ): Signal<T> {
 
     const initialValue = storage.getItem(key)
-      ? JSON.parse(storage.getItem(key)) as T
+      ? JSON.parse(`${storage.getItem(key)}`) as T
       : defaultValue;
 
     const [value, setValue] = createSignal<T>(initialValue);
@@ -108,63 +109,63 @@ const App: Component = () => {
     .filter(feed => feed.checked === true)
     .toArray());
 
-  const putNostrKey = async (newKey) => {
+  const putNostrKey = async (newKey: NostrKey) => {
     await db.nostrkeys.put(newKey)
   }
 
-  const removeNostrKey = async (nostrKeyRemove) => {
+  const removeNostrKey = async (nostrKeyRemove: NostrKey) => {
     await db.nostrkeys.where('publicKey').equals(nostrKeyRemove.publicKey).delete()
   }
 
 
-  const putNostrRelay = async (newNostrRelay) => {
+  const putNostrRelay = async (newNostrRelay: NostrRelay) => {
     await db.nostrrelays.put(newNostrRelay)
   }
-  const removeNostrRelay = async (nostrRelayToRemove) => {
+  const removeNostrRelay = async (nostrRelayToRemove: NostrRelay) => {
     await db.nostrrelays.where('id').equals(nostrRelayToRemove.id).delete()
   }
 
   const feeds = createDexieArrayQuery(() => db.feeds.toArray());
 
-  const checkedFeeds = createDexieArrayQuery(() => db.feeds
-    .filter(feed => feed.checked === true)
-    .toArray());
+  // const checkedFeeds = createDexieArrayQuery(() => db.feeds
+  //   .filter(feed => feed.checked === true)
+  //   .toArray());
 
-  const putFeed = async (newFeed) => {
+  const putFeed = async (newFeed: Feed) => {
     await db.feeds.put(newFeed)
   }
 
-  const removeFeed = async (feedRemove) => {
+  const removeFeed = async (feedRemove: Feed) => {
     await db.feeds.where('id').equals(feedRemove.id).delete()
   }
 
   const corsProxies = createDexieArrayQuery(() => db.corsproxies.toArray());
 
-  const putCorsProxy = async (newCorsProxy) => {
+  const putCorsProxy = async (newCorsProxy: CorsProxy) => {
     await db.corsproxies.put(newCorsProxy)
   }
-  const removeCorsProxy = async (corsProxyToRemove) => {
+  const removeCorsProxy = async (corsProxyToRemove: CorsProxy) => {
     await db.corsproxies.where('id').equals(corsProxyToRemove.id).delete()
   }
 
   const processedPosts = createDexieArrayQuery(() => db.processedposts.toArray());
 
-  const putProcessedPost = async (newProcessedPost) => {
+  const putProcessedPost = async (newProcessedPost: ProcessedPost) => {
     await db.processedposts.put(newProcessedPost)
   }
 
   const categories = createDexieArrayQuery(() => db.categories.toArray());
 
-  const putCategory = async (newCategory) => {
+  const putCategory = async (newCategory: Category) => {
     await db.categories.put(newCategory)
   }
 
-  const removeCategory = async (categoryToRemove) => {
+  const removeCategory = async (categoryToRemove: Category) => {
     await db.categories.where('id').equals(categoryToRemove.id).delete()
   }
 
-  const putClassifier = async (newClassifierEntry) => {
-    if (newClassifierEntry.algorithm === '') {
+  const putClassifier = async (newClassifierEntry: Classifier) => {
+    if (newClassifierEntry.model === '') {
       return
     }
     if (newClassifierEntry.id === undefined) {
@@ -173,37 +174,33 @@ const App: Component = () => {
 
     let oldClassifier = await db.classifiers.get(newClassifierEntry.id)
 
-    if (newClassifierEntry.algorithm == oldClassifier?.algorithm) {
+    if (newClassifierEntry.model == oldClassifier?.model) {
       return
     }
     await db.classifiers.put(newClassifierEntry)
   }
 
-  const removeClassifier = async (classifierToRemove) => {
+  const removeClassifier = async (classifierToRemove: Classifier) => {
     await db.classifiers.where('id').equals(classifierToRemove.id).delete()
   }
 
-  const [posts, setPosts] = createSignal<object[]>([])
+  // const [posts, setPosts] = createSignal<object[]>([])
   const [nostrPosts, setNostrPosts] = createSignal<object[]>([])
   const [isOpen, setIsOpen] = createStoredSignal('isSideNavOpen', false)
   const [selectedCategory, setSelectedCategory] = createStoredSignal('selectedCategory', '')
   const [selectedNostrAuthor, setSelectedNostrAuthor] = createStoredSignal('selectedNostrAuthor', '')
 
-  createEffect(() => {
-    const feedsForCategory = checkedFeeds.filter((feed) => selectedCategory() === '' || feed.categories.indexOf(selectedCategory()) !== -1)
-      .map((feed) => {
-        return {...feed}
-      })
-    fetchPosts(feedsForCategory, processedPosts, corsProxies)
-    .then((parsedPosts: {
-      mlText: string,
-      feedLink: string,
-      guid?: string
-    }[]) => {
-      const postsNonEmpty = parsedPosts.filter(post => post?.mlText != null).slice()
-      setPosts(postsNonEmpty)
-    })
-  })
+  // createEffect(() => {
+  //   const feedsForCategory = checkedFeeds.filter((feed) => selectedCategory() === '' || feed.categories.indexOf(selectedCategory()) !== -1)
+  //     .map((feed) => {
+  //       return {...feed}
+  //     })
+  //   fetchPosts(feedsForCategory, processedPosts, corsProxies)
+  //   .then((parsedPosts) => {
+  //     const postsNonEmpty = parsedPosts.filter(post => post?.mlText != null).slice()
+  //     setPosts(postsNonEmpty)
+  //   })
+  // })
 
   createEffect(() => {
     const selectedNostrAuthorToFetch = selectedNostrAuthor().toString()
@@ -350,7 +347,7 @@ const App: Component = () => {
         } path='/nostrposts'
         />
 
-        <Route
+        {/* <Route
           element={
             <Main
               navBarWidth={navBarWidth}
@@ -383,7 +380,7 @@ const App: Component = () => {
             '/posts',
             '/posts/:category'
           ]}
-        />
+        /> */}
       </Routes>
 </div>
   )

@@ -13,7 +13,7 @@ export interface Classifier {
   "id": string,
   "thresholdSuppressDocCount": string,
   "thresholdPromoteDocCount": string,
-  "algorithm": string
+  "model": string
 }
 
 export interface Feed {

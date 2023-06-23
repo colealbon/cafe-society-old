@@ -1,4 +1,4 @@
-[
+const defaultCategories = [
   { "id": "maritime", "checked": false },
   { "id": "work", "checked": false },
   { "id": "science", "checked": true },
@@ -11,3 +11,4 @@
   { "id": "variety", "checked": false },
   { "id": "medicine", "checked": false }
 ]
+export default defaultCategories

@@ -28,7 +28,7 @@ const Classifiers = (props: {
 
   const group = createFormGroup({
     id: createFormControl(""),
-    algorithm: createFormControl(""),
+    model: createFormControl(""),
     thresholdSuppressDocCount: createFormControl(''),
     thresholdPromoteDocCount: createFormControl('')
   });
@@ -42,7 +42,7 @@ const Classifiers = (props: {
     [Object.fromEntries(
       Object.entries(Object.assign({
         id:'',
-        algorithm:'',
+        model:'',
         thresholdSuppressDocCount: '',
         thresholdPromoteDocCount: ''
       }, group.value))
@@ -52,7 +52,7 @@ const Classifiers = (props: {
       const newClassifierObj: Classifier = {
         ...{
           id: '',
-          algorithm: '',
+          model: '',
           thresholdSuppressDocCount: '',
           thresholdPromoteDocCount: ''
         },
@@ -63,7 +63,7 @@ const Classifiers = (props: {
 
     group.setValue({
       id:'',
-      algorithm:'',
+      model:'',
       thresholdSuppressDocCount: '',
       thresholdPromoteDocCount: ''
     })
@@ -74,7 +74,7 @@ const Classifiers = (props: {
     onSubmit(event)
     group.setValue({
       id:'',
-      algorithm: '',
+      model: '',
       thresholdSuppressDocCount: '',
       thresholdPromoteDocCount: ''
     })
@@ -85,14 +85,14 @@ const Classifiers = (props: {
       .find(classifierEdit => classifierEdit['id'] === id)
     group.setValue(Object.assign({
         id:'',
-        algorithm:'',
+        model:'',
         thresholdSuppressDocCount: '',
         thresholdPromoteDocCount: ''
       }, valuesForSelectedClassifier))
   }
 
   const handleCopyClick = () => {
-    navigator.clipboard.writeText(group.controls.algorithm.rawValue);
+    navigator.clipboard.writeText(group.controls.model.rawValue);
   }
 
   const handleRemoveClick = (classifier) => {
@@ -120,8 +120,8 @@ const Classifiers = (props: {
       <TextInput name="thresholdPromoteDocCount" control={group.controls.thresholdPromoteDocCount} />
       <div />
 
-      <label for="Algorithm">Bayes Algorithm</label>
-      <TextInput name="algorithm" control={group.controls.algorithm} />
+      <label for="Model">Bayes Model</label>
+      <TextInput name="model" control={group.controls.model} />
       <div>
         <Link.Root onClick={handleAddClick}>
           <VsAdd />
@@ -140,7 +140,7 @@ const Classifiers = (props: {
           <VsCopy />
         </Link.Root>
       </div>
-    <pre>{group.controls.algorithm.rawValue}</pre>
+    <pre>{group.controls.model.rawValue}</pre>
     </>}
     </p>
     </Collapsible.Content>

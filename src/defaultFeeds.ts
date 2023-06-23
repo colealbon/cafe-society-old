@@ -1,3 +1,4 @@
+const defaultFeeds =
 [
   {
   "id": "https://www.thelancet.com/rssfeed/lancet_current.xml",
@@ -130,3 +131,4 @@
     "categories": ["variety"]
   }
 ]
+export default defaultFeeds
