@@ -1,0 +1,28 @@
+{
+    "env": {
+        "browser": true,
+        "es2021": true
+    },
+    "extends": [
+        "eslint:recommended",
+        "plugin:solid/typescript"
+    ],
+    "overrides": [
+    ],
+    "parser": "@typescript-eslint/parser",
+    "parserOptions": {
+        "ecmaVersion": "latest",
+        "ecmaFeatures": {
+            "jsx": true
+        }
+    },
+    "plugins": [
+        "solid"
+    ],
+    "rules": {
+        "solid/reactivity": "warn",
+        "solid/no-destructure": "warn",
+        "solid/jsx-no-undef": "error",
+        "no-trailing-spaces": "error"
+    }
+}
