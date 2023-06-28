@@ -1,9 +1,12 @@
 import {
-  For
+  For,
+  createEffect,
+  createSignal,
+  Show
 } from 'solid-js';
 import { BiSolidSortAlt } from 'solid-icons/bi'
 import { FaSolidCheck } from 'solid-icons/fa'
-
+import { Collapsible } from "@kobalte/core";
 import Heading from './Heading'
 
 import {
@@ -12,7 +15,7 @@ import {
 } from "solid-forms";
 import TextInput from './TextInput'
 import {
-  Link,
+  Button,
   Switch,
   Combobox
 } from "@kobalte/core";
@@ -30,6 +33,13 @@ const Feeds = (props: {
   // eslint-disable-next-line no-unused-vars
   removeFeed: (feed: Feed) => void
 }) => {
+  const [newFeed, setNewFeed] = createSignal();
+
+  createEffect(() => {
+    const theNewFeed = newFeed()
+    console.log(theNewFeed)
+    props.putFeed(theNewFeed)
+  })
 
   const group = createFormGroup({
     id: createFormControl(""),
@@ -37,7 +47,7 @@ const Feeds = (props: {
     categories: createFormControl([])
   });
 
-  const onSubmit = async (event) => {
+  const onSubmit = async (event: any) => {
     event.preventDefault()
     if (group.isSubmitted) {
       console.log('already submitted')
@@ -90,10 +100,9 @@ const Feeds = (props: {
       {checked: !valuesForSelectedFeed.checked},
       {categories: valuesForSelectedFeed.categories.slice()}
     ))
-    props.putFeed(newValueObj)
+    // props.putFeed(newValueObj)
+    setNewFeed(newValueObj)
   }
-
-  console.log(props.categories)
 
   return (
     <div>
@@ -158,38 +167,32 @@ const Feeds = (props: {
         <h4 class="text-muted">Feeds</h4>
         <For each={props.feeds}>
           {(feed) => (
-              <div style={
-                {
-                  'padding': '8px 8px 8px 32px',
-                  'font-size': '25px',
-                  'flex-direction': 'row'
-                }
-              }>
-                <Link.Root onClick={(event) => {
-                  event.preventDefault()
-                  props.removeFeed(feed)
-                }}>
-                  <VsTrash/>
-                </Link.Root>
-                &nbsp;
-                <Switch.Root
-                  class="switch"
-                  defaultChecked={feed.checked}
-                  onClick={() => handleToggleChecked(feed.id)}
-                >
-                  <Switch.Input class="switch__input" />
-                  <Switch.Control class="switch__control">
-                    <Switch.Thumb class="switch__thumb" />
-                  </Switch.Control>
-                </Switch.Root>
-                &nbsp;
-                <Link.Root onClick={(event) => {
-                  event.preventDefault()
-                  handleKeyClick(feed.id)
-                }}>
-                  {feed.id || ''}
-                </Link.Root>
-              </div>
+            <Show when={feed.id != ''}>
+              <Collapsible.Root class="collapsible" defaultOpen={true}>
+                <Collapsible.Content class="collapsible__content">
+                    <Collapsible.Trigger class="collapsible__trigger">
+                      <Button.Root onClick={() => {setTimeout(() => props.removeFeed(feed), 300)}}>
+                        <VsTrash/>
+                      </Button.Root>
+                     </Collapsible.Trigger>
+                    &nbsp;
+                    <Switch.Root
+                      class="switch"
+                      defaultChecked={feed.checked}
+                      onClick={() => handleToggleChecked(feed.id)}
+                    >
+                      <Switch.Input class="switch__input" />
+                      <Switch.Control class="switch__control">
+                        <Switch.Thumb class="switch__thumb" />
+                      </Switch.Control>
+                    </Switch.Root>
+                    &nbsp;
+                    <Button.Root onClick={() => handleKeyClick(feed.id)}>
+                      {feed.id || ''}
+                    </Button.Root>
+                </Collapsible.Content>
+              </Collapsible.Root>
+            </Show>
           )}
         </For>
       </div>

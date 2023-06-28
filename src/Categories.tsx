@@ -32,7 +32,7 @@ const Categories = (props: {
     checked: createFormControl(true)
   });
 
-  const onSubmit = async (event) => {
+  const onSubmit = async (event: any) => {
     event.preventDefault()
     if (group.isSubmitted) {
       // console.log('already submitted')
@@ -81,7 +81,7 @@ const Categories = (props: {
       {checked: !group.value.checked}
     ))
 
-    group.setValue (newValueObj)
+    group.setValue(newValueObj)
     props.putCategory(newValueObj)
   }
 

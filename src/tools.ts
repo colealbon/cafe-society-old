@@ -2,6 +2,13 @@ import { convert } from 'html-to-text'
 import { XMLParser } from 'fast-xml-parser'
 import { removeStopwords } from 'stopword'
 import natural from 'natural'
+<<<<<<< HEAD
+=======
+import {
+  Feed,
+  CorsProxy
+} from './db-fixture'
+>>>>>>> 83313bb (troubleshoot deploy)
 
 const parser = new XMLParser();
 
@@ -29,9 +36,17 @@ const parseRSS = (content) => {
   const feedTitle = content.rss.channel.title
   const feedLink = content.rss.channel.link
   const feedDescription = content.rss.channel.description
+<<<<<<< HEAD
   const feedPosts = content.rss.channel.item
 
   return feedPosts
+=======
+  const feedPosts = content.rss.channel.item.length == null ?
+    [content.rss.channel.item] :
+    content.rss.channel.item
+
+  return [...feedPosts]
+>>>>>>> 83313bb (troubleshoot deploy)
     .map((itemEntry) => ({
       feedTitle: feedTitle,
       feedLink: feedLink,
@@ -141,18 +156,28 @@ export const appendPrediction = ((posts, classifierJSON, thresholdPromoteDocCoun
 
 export const fetchPosts = ((feeds, processedPosts, corsProxies) => {
   return new Promise((resolve) => {
+<<<<<<< HEAD
     const fetchQueue = []
     feeds.forEach(feed => {
       fetchQueue.push(new Promise((resolve) => {
         corsProxies.slice().forEach((corsProxy) => {
+=======
+    const fetchQueue: any[] = []
+    feeds.forEach((feed: Feed) => {
+      fetchQueue.push(new Promise((resolve) => {
+        corsProxies.slice().forEach((corsProxy: CorsProxy) => {
+>>>>>>> 83313bb (troubleshoot deploy)
           fetch(`${corsProxy.id}/${feed.id}`).then(response => {
             response.text().then(feedText => {
               resolve(feedText)
             })
           })
+<<<<<<< HEAD
           .catch(error => {
             console.log(error)
           })
+=======
+>>>>>>> 83313bb (troubleshoot deploy)
         })
       }))
     })
@@ -175,9 +200,15 @@ export const fetchPosts = ((feeds, processedPosts, corsProxies) => {
           }
         })
        .filter((postItem) => {
+<<<<<<< HEAD
           const processedPostsID = shortUrl(postItem.feedLink === "" ? postItem.guid : postItem.feedLink)
           const processedPostsForFeedLink = processedPosts.slice()
           .find(processedPostEntry => processedPostEntry.id === processedPostsID)?.processedPosts.slice()
+=======
+          const processedPostsID = shortUrl(postItem.feedLink == "" ? postItem.guid : postItem.feedLink)
+          const processedPostsForFeedLink = processedPosts.slice()
+          .find((processedPostEntry: any) => processedPostEntry.id === processedPostsID)?.processedPosts.slice()
+>>>>>>> 83313bb (troubleshoot deploy)
           if (processedPostsForFeedLink == undefined) {
             return true
           }

@@ -1,69 +1,59 @@
+import { convert } from 'html-to-text'
+import { removeStopwords } from 'stopword'
+import natural from 'natural'
+
 import {
-  createSignal,
-  // Suspense,
-  Signal,
+  Suspense,
   createEffect,
+  createSignal,
+  Signal,
   Component
 } from 'solid-js';
-
-import { eventKind, NostrFetcher } from "nostr-fetch";
-
-import { Link } from "@kobalte/core";
-
 import {
   Routes,
   Route
 } from '@solidjs/router';
-
 import {
-  // fetchPosts,
-  cleanNostrPost
-} from './tools'
-
-import { AiOutlineArrowRight } from 'solid-icons/ai'
-import Contribute from './Contribute';
-import NostrKeys from './NostrKeys';
-import NostrRelays from './NostrRelays'
-import NostrPosts from './NostrPosts';
-import Feeds from './Feeds';
-import Categories from './Categories';
-import Classifiers from './Classifiers';
-import CorsProxies from './CorsProxies';
-// import Posts from './Posts';
+  DbFixture,
+  NostrRelay,
+  Category,
+  Feed,
+  CorsProxy,
+  Classifier,
+  ProcessedPost
+} from "./db-fixture";
+import axios from 'axios';
+import { XMLParser } from 'fast-xml-parser'
+import { createDexieArrayQuery } from "solid-dexie";
+import { eventKind, NostrFetcher } from "nostr-fetch";
+import { Link } from "@kobalte/core";
+import Posts from './Posts'
+import NostrPosts from './NostrPosts'
 import NavBar from './NavBar';
 import Main from './Main';
+import NostrKeys from './NostrKeys';
+import Feeds from './Feeds';
+import CorsProxies from './CorsProxies';
+import NostrRelays from './NostrRelays';
+import Categories from './Categories';
+import Classifiers from './Classifiers';
+import Heading from './Heading';
 
-import { DbFixture } from "./db-fixture";
-
-import defaultFeeds from './defaultFeeds'
-import { Feed } from './db-fixture'
-
-import defaultCorsProxies from './defaultCorsProxies'
-import { CorsProxy } from './db-fixture'
-
-import defaultNostrRelays from './defaultNostrRelays'
-import { NostrRelay } from './db-fixture'
-
-import defaultNostrKeys from './defaultNostrKeys'
+import Contribute from './Contribute';
+import defaultNostrKeys from './defaultNostrKeys';
+import defaultNostrRelays from './defaultNostrRelays';
+import defaultFeeds from './defaultFeeds';
+import defaultCorsProxies from './defaultCorsProxies';
+import defaultCategories from './defaultCategories';
+import defaultClassifiers from './defaultClassifiers';
+import defaultProcessed from './defaultProcessed';
 import { NostrKey } from './db-fixture'
-
-import { Category } from './db-fixture'
-
-import defaultClassifiers from './defaultClassifiers'
-import { Classifier } from './db-fixture'
-
-import defaultProcessed from './defaultProcessed'
-import { ProcessedPost } from './db-fixture'
-
-import { createDexieArrayQuery } from "solid-dexie";
-
-import defaultCategories from './defaultCategories'
-
-// import Heading from './Heading'
 
 const navBarWidth = 250
 const fetcher = NostrFetcher.init();
 const db = new DbFixture();
+const parser = new XMLParser();
+const tokenizer = new natural.WordTokenizer
 
 db.on("populate", () => {
   db.nostrkeys.bulkAdd(defaultNostrKeys as NostrKey[]);
@@ -75,48 +65,141 @@ db.on("populate", () => {
   db.processedposts.bulkAdd(defaultProcessed as ProcessedPost[]);
 });
 
+function createStoredSignal<T>(
+  key: string,
+  defaultValue: T,
+  storage = localStorage
+): Signal<T> {
+  const initialValue = storage.getItem(key)
+    ? JSON.parse(`${storage.getItem(key)}`) as T
+    : defaultValue;
+  const [value, setValue] = createSignal<T>(initialValue);
+  const setValueAndStore = ((arg) => {
+    const v = setValue(arg);
+    storage.setItem(key, JSON.stringify(v));
+    return v;
+  }) as typeof setValue;
+  return [value, setValueAndStore];
+}
+const parseRSS = (content:any) => {
+  const feedTitle = content.rss.channel.title
+  const feedLink = content.rss.channel.link
+  const feedDescription = content.rss.channel.description
+  const feedPosts = content.rss.channel.item.length == null ?
+    [content.rss.channel.item] :
+    content.rss.channel.item
+
+  return [...feedPosts]
+    .map((itemEntry) => ({
+      feedTitle: feedTitle,
+      feedLink: feedLink,
+      feedDescription: feedDescription,
+      ...itemEntry
+    }))
+    .map(itemEntry => ({
+      postSummary: convert(
+        itemEntry.description,
+        {
+          ignoreLinks: true,
+          ignoreHref: true,
+          ignoreImage: true,
+          linkBrackets: false
+        })
+      .replace(/\[.*?\]/g, '')
+      .replace(/\n/g,' ')
+      .toString()
+      .trim(),
+      ...itemEntry
+    }))
+    .map(itemEntry => ({
+      ...itemEntry,
+      postId: itemEntry.link || itemEntry.guid,
+      postTitle: itemEntry.title,
+      mlText: removeStopwords(`${itemEntry.title} ${itemEntry.postSummary}`
+        .replace('undefined','')
+        .replace(/[^\p{L}\s]/gu,"")
+        .split(' '))
+        .join(' ')
+        .toLowerCase()
+    })
+  )
+}
+
+const parseAtom = (content: any) => {
+  const feedTitle = content.feed?.feedTitle
+  const feedLink = content.feed?.id
+  const feedDescription = content.feed?.subtitle
+  const feedPosts = content.feed?.entry
+  return feedPosts?.map((itemEntry: any) => ({
+      feedTitle: feedTitle,
+      feedLink: feedLink,
+      feedDescription: feedDescription,
+      ...itemEntry[0]
+    }))
+    .map((itemEntry: any) => ({
+      postSummary: convert(itemEntry.content, { ignoreLinks: true, ignoreHref: true, ignoreImage: true, linkBrackets: false  })
+      .replace(/\[.*?\]/g, '')
+      .replace(/\n/g,' ')
+      .toString()
+      .trim(),
+      ...itemEntry
+    }))
+    .map((itemEntry: any) => ({
+      ...itemEntry,
+      postId: itemEntry.id,
+      postTitle: itemEntry.title,
+      mlText: removeStopwords(`${itemEntry.title} ${itemEntry.postSummary}`
+        .replace('undefined','')
+        .replace(/[^\p{L}\s]/gu,"")
+        .split(' '))
+        .join(' ')
+        .toLowerCase()
+    })
+  )
+}
+
+const parsePosts = (postsXML: any[]) => {
+  const parseQueue: any[] = []
+  postsXML.forEach(xmlEntry => {
+    parseQueue.push(new Promise(resolve => {
+      const content = parser.parse(xmlEntry.data)
+      const parsed = content.rss ? parseRSS(content) : parseAtom(content)
+      resolve(parsed)
+    }))
+  })
+  return Promise.all(parseQueue)
+}
+
+const removePunctuation = (text: string) => {
+  return `${text}`
+    .replace(/[/?…".,#!$%^&*;:{}=_`~()'’‘“”]/g, '')
+    .replace(/\s{2,}/g, ' ');
+};
+
+const shortUrl = (text: string) => {
+  const theUrl = new URL(text);
+  const newPath = removePunctuation(`${theUrl.hostname}${theUrl.pathname}`)
+    .replace(/-/g, '')
+    .toLowerCase();
+  return newPath;
+};
+
 const App: Component = () => {
-
-  function createStoredSignal<T>(
-      key: string,
-      defaultValue: T,
-      storage = localStorage
-  ): Signal<T> {
-
-    const initialValue = storage.getItem(key)
-      ? JSON.parse(`${storage.getItem(key)}`) as T
-      : defaultValue;
-
-    const [value, setValue] = createSignal<T>(initialValue);
-
-    const setValueAndStore = ((arg) => {
-      const v = setValue(arg);
-      storage.setItem(key, JSON.stringify(v));
-      return v;
-    }) as typeof setValue;
-
-    return [value, setValueAndStore];
-  }
-
-  const classifiers = createDexieArrayQuery(() => db.classifiers.toArray());
+  const categories = createDexieArrayQuery(() => db.categories.toArray());
   const nostrKeys = createDexieArrayQuery(() => db.nostrkeys.toArray());
   const ignoreNostrKeys = createDexieArrayQuery(() => db.nostrkeys
   .filter(nostrKey => nostrKey.ignore === true)
   .toArray()
   );
-  const nostrRelays = createDexieArrayQuery(() => db.nostrrelays.toArray());
-  const checkedNostrRelays = createDexieArrayQuery(() => db.nostrrelays
-    .filter(feed => feed.checked === true)
-    .toArray());
-
   const putNostrKey = async (newKey: NostrKey) => {
     await db.nostrkeys.put(newKey)
   }
-
   const removeNostrKey = async (nostrKeyRemove: NostrKey) => {
     await db.nostrkeys.where('publicKey').equals(nostrKeyRemove.publicKey).delete()
   }
+  const [selectedCategory, setSelectedCategory] = createStoredSignal('selectedCategory', '')
 
+  const classifiers = createDexieArrayQuery(() => db.classifiers.toArray());
 
   const putNostrRelay = async (newNostrRelay: NostrRelay) => {
     await db.nostrrelays.put(newNostrRelay)
@@ -127,12 +210,12 @@ const App: Component = () => {
 
   const feeds = createDexieArrayQuery(() => db.feeds.toArray());
 
-  // const checkedFeeds = createDexieArrayQuery(() => db.feeds
-  //   .filter(feed => feed.checked === true)
-  //   .toArray());
+  const checkedFeeds = createDexieArrayQuery(() => db.feeds
+    .filter(feed => feed.checked === true)
+    .toArray());
 
   const putFeed = async (newFeed: Feed) => {
-    await db.feeds.put(newFeed)
+    await newFeed?.id && db.feeds.put(newFeed)
   }
 
   const removeFeed = async (feedRemove: Feed) => {
@@ -154,14 +237,50 @@ const App: Component = () => {
     await db.processedposts.put(newProcessedPost)
   }
 
-  const categories = createDexieArrayQuery(() => db.categories.toArray());
-
   const putCategory = async (newCategory: Category) => {
     await db.categories.put(newCategory)
   }
 
   const removeCategory = async (categoryToRemove: Category) => {
     await db.categories.where('id').equals(categoryToRemove.id).delete()
+  }
+  const cleanNostrPost = (post: any) => {
+    return {
+      mlText: [tokenizer.tokenize(
+        convert(
+          `${post.content}`,
+          {
+            ignoreLinks: true,
+            ignoreHref: true,
+            ignoreImage: true,
+            linkBrackets: false
+          }
+        ))]
+        .flat()
+        .filter(word => word && word.length < 24)
+        .filter(word => `${word}` != '')
+        .join(' ')
+        .toLowerCase() || '',
+      ...post
+    }
+  }
+
+  const applyPrediction = (post: any, category: string) => {
+      // const classifierEntry = classifiers.find((classifierEntry) => classifierEntry.id == selectedCategory())
+      // const classifierJSON = classifierEntry?.model
+      // let classifierForCategory = new natural.BayesClassifier()
+      // if (`${classifierJSON}` != '' && `${classifierJSON}` != 'undefined') {
+      //   classifierForCategory = natural.BayesClassifier.restore(JSON.parse(`${classifierJSON}`));
+      // }
+    // const prediction = classifierForCategory.getClassifications(post.mlText)
+    // const docCount = classifierForCategory.docs.length
+    return {
+      ...post,
+      ...{
+        'prediction': category,
+        'docCount': 999
+      }
+    }
   }
 
   const putClassifier = async (newClassifierEntry: Classifier) => {
@@ -184,23 +303,76 @@ const App: Component = () => {
     await db.classifiers.where('id').equals(classifierToRemove.id).delete()
   }
 
-  // const [posts, setPosts] = createSignal<object[]>([])
+  const [posts, setPosts] = createSignal<object[]>([])
   const [nostrPosts, setNostrPosts] = createSignal<object[]>([])
   const [isOpen, setIsOpen] = createStoredSignal('isSideNavOpen', false)
-  const [selectedCategory, setSelectedCategory] = createStoredSignal('selectedCategory', '')
   const [selectedNostrAuthor, setSelectedNostrAuthor] = createStoredSignal('selectedNostrAuthor', '')
+  const nostrRelays = createDexieArrayQuery(() => db.nostrrelays.toArray());
+  const checkedNostrRelays = createDexieArrayQuery(() => db.nostrrelays
+    .filter(feed => feed.checked === true)
+    .toArray());
 
-  // createEffect(() => {
-  //   const feedsForCategory = checkedFeeds.filter((feed) => selectedCategory() === '' || feed.categories.indexOf(selectedCategory()) !== -1)
-  //     .map((feed) => {
-  //       return {...feed}
-  //     })
-  //   fetchPosts(feedsForCategory, processedPosts, corsProxies)
-  //   .then((parsedPosts) => {
-  //     const postsNonEmpty = parsedPosts.filter(post => post?.mlText != null).slice()
-  //     setPosts(postsNonEmpty)
-  //   })
-  // })
+  createEffect(() => {
+    const feedsForCategory = checkedFeeds
+      .filter((feed) => selectedCategory() === '' || feed.categories.indexOf(selectedCategory()) !== -1)
+    const fetchQueue: any[] = []
+    feedsForCategory.forEach((feed: Feed) => {
+      fetchQueue.push(new Promise((resolve) => {
+        try {
+          axios.get(`https://cafe-society.news/.netlify/functions/node-fetch?url=${feed.id}`)
+          .then(response => resolve(response))
+        } catch (error) {
+          resolve('')
+        }
+      }))
+    })
+
+    Promise.all(fetchQueue)
+    .then(fetchedPosts => parsePosts(fetchedPosts))
+    .then((parsed: any[]) => {
+      const cleanPosts = parsed.flat()
+      .filter(post => `${post?.mlText}`.trim() != '')
+      .map(post => {
+        return {
+          ...post,
+          postTitle: post?.postTitle
+          .replace(/&#039;/g, "'")
+          .replace(/&#8217;/g, "'")
+          .replace(/&#8211;/g, "-")
+          .replace(/&#8216;/g, "'")
+          .replace(/&#038;/g, "&")
+        }
+      })
+      .filter((postItem: any) => {
+        const processedPostsID = shortUrl(postItem.feedLink === "" ? postItem.guid : postItem.feedLink)
+        const processedPostsForFeedLink = processedPosts.slice()
+        .find((processedPostEntry: any) => processedPostEntry.id === processedPostsID)?.processedPosts.slice()
+        if (processedPostsForFeedLink == undefined) {
+          return true
+        }
+        return processedPostsForFeedLink.indexOf(postItem.mlText) == -1
+      })
+      // .map((post: any) => {
+      //   try {
+      //     const prediction = classifier().getClassifications(post.mlText)
+      //     return {...post, ...{'prediction': prediction}}
+      //   } catch (error) {
+      //     console.log(error)
+      //   }
+      // })
+      .filter((postItem) => {
+          const processedPostsID = shortUrl(`${postItem.feedLink}` == "" ? postItem.guid : `${postItem?.feedLink}`)
+          const processedPostsForFeedLink = processedPosts.slice()
+            .find((processedPostEntry: any) => processedPostEntry.id === processedPostsID)?.processedPosts.slice()
+          if (processedPostsForFeedLink == undefined) {
+            return true
+          }
+          return processedPostsForFeedLink.indexOf(postItem?.mlText) == -1
+      })
+      setPosts(cleanPosts)
+    })
+  })
+
 
   createEffect(() => {
     const selectedNostrAuthorToFetch = selectedNostrAuthor().toString()
@@ -218,11 +390,11 @@ const App: Component = () => {
       filterOptions,
       selectedNostrAuthorToFetch ? 100 : 500,
     ).then((allPosts) => {
-      setNostrPosts(
-        allPosts
-        .filter(nostrPost => !ignoreNostrKeys.find(ignoreKey => ignoreKey.publicKey == nostrPost.pubkey))
-        .map(nostrPost => cleanNostrPost(nostrPost))
-      )
+      const cleanedNostrPosts = allPosts
+      .filter(nostrPost => !ignoreNostrKeys.find(ignoreKey => ignoreKey.publicKey == nostrPost.pubkey))
+      .map(nostrPost => cleanNostrPost(nostrPost))
+      .map(post => applyPrediction(post, 'nostr'))
+      setNostrPosts(cleanedNostrPosts)
     })
   })
 
@@ -235,17 +407,30 @@ const App: Component = () => {
               setIsOpen(true)
             }}
         >
-          <AiOutlineArrowRight />
+          ⭢
         </Link.Root>
       </div>
       <NavBar
         navBarWidth={navBarWidth}
-        categories={categories.filter(category => category.checked)}
         handleClose={() => setIsOpen(false)}
         isOpen={isOpen}
+        categories={categories.filter(category => category.checked)}
         setSelectedCategory={setSelectedCategory}
       />
       <Routes>
+        <Route element={
+            <Main
+              navBarWidth={navBarWidth}
+              isOpen={isOpen}
+            >
+              <NostrKeys
+                nostrKeys={nostrKeys}
+                putNostrKey={putNostrKey}
+                removeNostrKey={removeNostrKey}
+              />
+            </Main>
+          } path='/nostr'
+          />
         <Route element={<Main navBarWidth={navBarWidth} isOpen={isOpen}><div><Contribute /></div></Main>} path='/contribute' />
         <Route element={
           <Main
@@ -286,19 +471,6 @@ const App: Component = () => {
              />
             </Main>
         } path='/nostrrelays'
-        />
-        <Route element={
-          <Main
-            navBarWidth={navBarWidth}
-            isOpen={isOpen}
-          >
-            <NostrKeys
-              nostrKeys={nostrKeys}
-              putNostrKey={putNostrKey}
-              removeNostrKey={removeNostrKey}
-            />
-          </Main>
-        } path='/nostr'
         />
         <Route element={
           <Main
@@ -347,7 +519,7 @@ const App: Component = () => {
         } path='/nostrposts'
         />
 
-        {/* <Route
+        <Route
           element={
             <Main
               navBarWidth={navBarWidth}
@@ -364,13 +536,13 @@ const App: Component = () => {
               }
             >
               <Posts
-                category={selectedCategory()}
+                // category={selectedCategory}
                 setSelectedCategory={setSelectedCategory}
                 posts={posts}
-                classifiers={classifiers}
-                putClassifier={putClassifier}
-                processedPosts={processedPosts}
-                putProcessedPost={putProcessedPost}
+                // classifiers={classifiers}
+                // putClassifier={putClassifier}
+                // processedPosts={processedPosts}
+                // putProcessedPost={putProcessedPost}
                />
             </Suspense>
             </Main>
@@ -380,9 +552,11 @@ const App: Component = () => {
             '/posts',
             '/posts/:category'
           ]}
-        /> */}
+        />
       </Routes>
-</div>
-  )
-}
+
+    </div>
+  );
+};
+
 export default App;

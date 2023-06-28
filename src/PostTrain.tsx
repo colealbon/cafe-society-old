@@ -5,7 +5,7 @@ import {
     AiOutlineArrowDown
   } from 'solid-icons/ai'
 
-const PostTrain = (props) => {
+const PostTrain = (props: any) => {
   const handleTrain = (mlClass: string) => {
     props.classifier().addDocument(props.mlText, mlClass)
     props.classifier().train()
@@ -38,16 +38,16 @@ const PostTrain = (props) => {
   }
 
 
-  const denominator = props.prediction.reduce((accumulator, currentValue) => {
-  return accumulator + currentValue.value
-  }, 0.0)
+  // const denominator = props.prediction.reduce((accumulator, currentValue) => {
+  // return accumulator + currentValue.value
+  // }, 0.0)
 
-  const promoteNumerator = 0.0 + props.prediction.find((predictionEntry) => predictionEntry.label == 'promote')?.value
-  const suppressNumerator = 0.0 + props.prediction.find((predictionEntry) => ['suppress', 'surpress'].indexOf(predictionEntry.label) !== -1)?.value
+  // const promoteNumerator = 0.0 + props.prediction.find((predictionEntry) => predictionEntry.label == 'promote')?.value
+  // const suppressNumerator = 0.0 + props.prediction.find((predictionEntry) => ['suppress', 'surpress'].indexOf(predictionEntry.label) !== -1)?.value
 
   return(
     <div style={{"display": "flex", "flex-direction": 'row', 'justify-content':'space-around', 'width': '300px'}}>
-    <div>{Math.round((suppressNumerator / denominator) * 100).toString().replace('NaN',' - ')}%</div>
+    {/* <div>{Math.round((suppressNumerator / denominator) * 100).toString().replace('NaN',' - ')}%</div> */}
     <AiOutlineArrowDown class="collapsible__trigger-icon button" onclick={
       () => {
             setTimeout(() => {
@@ -74,7 +74,7 @@ const PostTrain = (props) => {
           }, 300)
         }
       }/>
-      <div>{Math.round((promoteNumerator / denominator) * 100).toString().replace('NaN',' - ')}%</div>
+      {/* <div>{Math.round((promoteNumerator / denominator) * 100).toString().replace('NaN',' - ')}%</div> */}
       <div/>
       <div/>
     </div>

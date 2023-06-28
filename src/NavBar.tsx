@@ -1,9 +1,17 @@
 
-import { For } from "solid-js"
+import {
+  For
+  ,createSignal
+  ,createEffect
+} from "solid-js"
 import { Link } from "@kobalte/core";
-import { AiOutlineArrowLeft } from 'solid-icons/ai'
 
-const NavBar = (props) => {
+const NavBar = (props: any) => {
+  const [selectedCategory, setSelectedCategory] = createSignal<string>('')
+  createEffect(() => {
+    const category = selectedCategory()
+    props.setSelectedCategory(category)
+  })
   return (
   <>
     <div
@@ -14,25 +22,25 @@ const NavBar = (props) => {
       }}
     >
       <Link.Root onClick={props.handleClose}>
-        <AiOutlineArrowLeft />
+      ⭠
       </Link.Root>
       <div />
-      <Link.Root href="/posts" onClick={() => props.setSelectedCategory('')}>Posts</Link.Root>
+      <Link.Root href="/posts" onClick={props.setSelectedCategory('')}>Posts</Link.Root>
       <div style={{margin: "10px"}}>
           <For each={props.categories}>
-          {
-          (category) => (
-              <Link.Root
-              onClick={() => props.setSelectedCategory(`${category.id}`)}
-              href={`/posts/${category.id}`}
-          >
-          {`${category.id}`}
-          </Link.Root>
-          )
-          }
+            {
+              (category) => (
+                  <Link.Root
+                  onClick={() => setSelectedCategory(`${category.id}`)}
+                  href={`/posts/${category.id}`}
+              >
+              {`${category.id}`}
+              </Link.Root>
+              )
+            }
           </For>
           <Link.Root
-            onClick={() => props.setSelectedCategory('nostr')}
+            onClick={props.setSelectedCategory('nostr')}
             href="/nostrposts">nostr</Link.Root
           >
       </div>
