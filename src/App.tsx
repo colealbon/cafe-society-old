@@ -106,8 +106,7 @@ const parseRSS = (content:any) => {
           linkBrackets: false
         })
       .replace(/\[.*?\]/g, '')
-      .replace(/\n/g,' ')
-      .toString()
+      .replace(/\n/g,' ')?.toString()
       .trim(),
       ...itemEntry
     }))
@@ -115,12 +114,17 @@ const parseRSS = (content:any) => {
       ...itemEntry,
       postId: itemEntry.link || itemEntry.guid,
       postTitle: itemEntry.title,
-      mlText: removeStopwords(`${itemEntry.title} ${itemEntry.postSummary}`
+      mlText: removeStopwords([
+        tokenizer.tokenize(
+        convert(`${itemEntry.title} ${itemEntry.postSummary}`
         .replace('undefined','')
-        .replace(/[^\p{L}\s]/gu,"")
-        .split(' '))
-        .join(' ')
-        .toLowerCase()
+        .replace(/[^\p{L}\s]/gu,"") || ''))
+      ]
+      .flat()
+      .filter(word => word && word.length < 24)
+      .filter(word => `${word}` != ''))
+      .join(' ')
+      .toLowerCase()
     })
   )
 }
@@ -139,19 +143,23 @@ const parseAtom = (content: any) => {
     .map((itemEntry: any) => ({
       postSummary: convert(itemEntry.content, { ignoreLinks: true, ignoreHref: true, ignoreImage: true, linkBrackets: false  })
       .replace(/\[.*?\]/g, '')
-      .replace(/\n/g,' ')
-      .toString()
+      .replace(/\n/g,' ')?.toString()
       .trim(),
       ...itemEntry
     }))
     .map((itemEntry: any) => ({
       ...itemEntry,
-      postId: itemEntry.id,
+      postId: itemEntry?.id,
       postTitle: itemEntry.title,
-      mlText: removeStopwords(`${itemEntry.title} ${itemEntry.postSummary}`
-        .replace('undefined','')
-        .replace(/[^\p{L}\s]/gu,"")
-        .split(' '))
+      mlText: removeStopwords([
+          tokenizer.tokenize(
+          convert(`${itemEntry.title} ${itemEntry.postSummary}`
+          .replace('undefined','')
+          .replace(/[^\p{L}\s]/gu,"") || ''))
+        ]
+        .flat()
+        .filter(word => word && word.length < 24)
+        .filter(word => `${word}` != ''))
         .join(' ')
         .toLowerCase()
     })
@@ -184,6 +192,7 @@ const shortUrl = (text: string) => {
   return newPath;
 };
 
+
 const App: Component = () => {
   const categories = createDexieArrayQuery(() => db.categories.toArray());
   const nostrKeys = createDexieArrayQuery(() => db.nostrkeys.toArray());
@@ -205,7 +214,7 @@ const App: Component = () => {
     await db.nostrrelays.put(newNostrRelay)
   }
   const removeNostrRelay = async (nostrRelayToRemove: NostrRelay) => {
-    await db.nostrrelays.where('id').equals(nostrRelayToRemove.id).delete()
+    await db.nostrrelays.where('id').equals(nostrRelayToRemove?.id).delete()
   }
 
   const feeds = createDexieArrayQuery(() => db.feeds.toArray());
@@ -219,7 +228,7 @@ const App: Component = () => {
   }
 
   const removeFeed = async (feedRemove: Feed) => {
-    await db.feeds.where('id').equals(feedRemove.id).delete()
+    await db.feeds.where('id').equals(feedRemove?.id).delete()
   }
 
   const corsProxies = createDexieArrayQuery(() => db.corsproxies.toArray());
@@ -228,7 +237,7 @@ const App: Component = () => {
     await db.corsproxies.put(newCorsProxy)
   }
   const removeCorsProxy = async (corsProxyToRemove: CorsProxy) => {
-    await db.corsproxies.where('id').equals(corsProxyToRemove.id).delete()
+    await db.corsproxies.where('id').equals(corsProxyToRemove?.id).delete()
   }
 
   const processedPosts = createDexieArrayQuery(() => db.processedposts.toArray());
@@ -242,7 +251,7 @@ const App: Component = () => {
   }
 
   const removeCategory = async (categoryToRemove: Category) => {
-    await db.categories.where('id').equals(categoryToRemove.id).delete()
+    await db.categories.where('id').equals(categoryToRemove?.id).delete()
   }
   const cleanNostrPost = (post: any) => {
     return {
@@ -266,19 +275,18 @@ const App: Component = () => {
   }
 
   const applyPrediction = (post: any, category: string) => {
-      // const classifierEntry = classifiers.find((classifierEntry) => classifierEntry.id == selectedCategory())
-      // const classifierJSON = classifierEntry?.model
-      // let classifierForCategory = new natural.BayesClassifier()
-      // if (`${classifierJSON}` != '' && `${classifierJSON}` != 'undefined') {
-      //   classifierForCategory = natural.BayesClassifier.restore(JSON.parse(`${classifierJSON}`));
-      // }
-    // const prediction = classifierForCategory.getClassifications(post.mlText)
-    // const docCount = classifierForCategory.docs.length
+    const classifierEntry = classifiers.find((classifierEntry) => classifierEntry?.id == category)
+    let classifierForCategory = new natural.BayesClassifier()
+    if (classifierEntry?.model != null) {
+      classifierForCategory = natural.BayesClassifier.restore(JSON.parse(classifierEntry.model));
+    }
+    const prediction = classifierForCategory.getClassifications(post?.mlText)
+    const docCount = classifierForCategory.docs.length
     return {
       ...post,
       ...{
-        'prediction': category,
-        'docCount': 999
+        'prediction': prediction,
+        'docCount': docCount
       }
     }
   }
@@ -287,11 +295,11 @@ const App: Component = () => {
     if (newClassifierEntry.model === '') {
       return
     }
-    if (newClassifierEntry.id === undefined) {
+    if (newClassifierEntry?.id === undefined) {
       return
     }
 
-    let oldClassifier = await db.classifiers.get(newClassifierEntry.id)
+    let oldClassifier = await db.classifiers.get(newClassifierEntry?.id)
 
     if (newClassifierEntry.model == oldClassifier?.model) {
       return
@@ -300,7 +308,7 @@ const App: Component = () => {
   }
 
   const removeClassifier = async (classifierToRemove: Classifier) => {
-    await db.classifiers.where('id').equals(classifierToRemove.id).delete()
+    await db.classifiers.where('id').equals(classifierToRemove?.id).delete()
   }
 
   const [posts, setPosts] = createSignal<object[]>([])
@@ -319,8 +327,15 @@ const App: Component = () => {
     feedsForCategory.forEach((feed: Feed) => {
       fetchQueue.push(new Promise((resolve) => {
         try {
-          axios.get(`https://cafe-society.news/.netlify/functions/node-fetch?url=${feed.id}`)
-          .then(response => resolve(response))
+          corsProxies.slice().forEach((corsProxy) => {
+            axios.get(`${corsProxy.id}${feed.id}`)
+            .then(response => {
+              resolve(response)
+            })
+            .catch(error => {
+              console.log(error)
+            })
+          })
         } catch (error) {
           resolve('')
         }
@@ -344,38 +359,31 @@ const App: Component = () => {
         }
       })
       .filter((postItem: any) => {
-        const processedPostsID = shortUrl(postItem.feedLink === "" ? postItem.guid : postItem.feedLink)
+        const processedPostsID = postItem.feedLink === "" ? postItem.guid : shortUrl(postItem.feedLink)
         const processedPostsForFeedLink = processedPosts.slice()
-        .find((processedPostEntry: any) => processedPostEntry.id === processedPostsID)?.processedPosts.slice()
+        .find((processedPostEntry: any) => processedPostEntry?.id === processedPostsID)?.processedPosts.slice()
         if (processedPostsForFeedLink == undefined) {
           return true
         }
-        return processedPostsForFeedLink.indexOf(postItem.mlText) == -1
+        return processedPostsForFeedLink.indexOf(postItem?.mlText) == -1
       })
       // .map((post: any) => {
       //   try {
-      //     const prediction = classifier().getClassifications(post.mlText)
+      //     const prediction = .getClassifications(post.mlText)
       //     return {...post, ...{'prediction': prediction}}
       //   } catch (error) {
       //     console.log(error)
       //   }
       // })
-      .filter((postItem) => {
-          const processedPostsID = shortUrl(`${postItem.feedLink}` == "" ? postItem.guid : `${postItem?.feedLink}`)
-          const processedPostsForFeedLink = processedPosts.slice()
-            .find((processedPostEntry: any) => processedPostEntry.id === processedPostsID)?.processedPosts.slice()
-          if (processedPostsForFeedLink == undefined) {
-            return true
-          }
-          return processedPostsForFeedLink.indexOf(postItem?.mlText) == -1
-      })
+      .map((post) => applyPrediction(post, selectedCategory()))
+
       setPosts(cleanPosts)
     })
   })
 
 
   createEffect(() => {
-    const selectedNostrAuthorToFetch = selectedNostrAuthor().toString()
+    const selectedNostrAuthorToFetch = selectedNostrAuthor()?.toString()
     const filterOptions = selectedNostrAuthorToFetch ?
     {
       kinds: [ eventKind.text ],
@@ -536,13 +544,13 @@ const App: Component = () => {
               }
             >
               <Posts
-                // category={selectedCategory}
+                category={selectedCategory}
                 setSelectedCategory={setSelectedCategory}
                 posts={posts}
-                // classifiers={classifiers}
-                // putClassifier={putClassifier}
-                // processedPosts={processedPosts}
-                // putProcessedPost={putProcessedPost}
+                classifiers={classifiers}
+                putClassifier={putClassifier}
+                processedPosts={processedPosts}
+                putProcessedPost={putProcessedPost}
                />
             </Suspense>
             </Main>

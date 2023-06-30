@@ -18,7 +18,7 @@ const NostrPosts = (props) => {
   const [processedPostsForSession, setProcessedPostsForSession] = createSignal([])
 
   createEffect(() => {
-    const classifierEntry = props.classifiers.find((classifierEntry) => classifierEntry.id == props.category)
+    const classifierEntry = [props.classifiers].flat().find((classifierEntry) => classifierEntry.id == 'nostr')
     const classifierJSON = classifierEntry?.model
     let classifierForCategory = new natural.BayesClassifier()
     if (`${classifierJSON}` != '' && `${classifierJSON}` != 'undefined') {
@@ -110,7 +110,7 @@ const NostrPosts = (props) => {
           })
           .filter((postItem) => {
             const processedPostsForNostr = props.processedPosts.slice()
-            .find(processedPostEntry => processedPostEntry.id === 'nostr')?.processedPosts.slice()
+            .find(processedPostEntry => processedPostEntry?.id === 'nostr')?.processedPosts.slice()
             if (processedPostsForNostr== undefined) {
               return true
             }
@@ -145,13 +145,13 @@ const NostrPosts = (props) => {
                             {`${post.pubkey.substring(0,5)}...${post.pubkey.substring(post.pubkey.length - 5)}`}
                           </Link.Root>
                         </Show>
-                        <div style={{'color': 'grey'}}>{`${parseInt((((Date.now() / 1000) - post.created_at) / 60)).toString()} minutes ago`}</div>
+                        <div style={{'color': 'grey'}}>{`${parseInt((((Date.now() / 1000) - post.created_at) / 60))?.toString()} minutes ago`}</div>
                         <div>
                           {post.content}
                         </div>
                         <Collapsible.Trigger class="collapsible__trigger">
                         <PostTrain
-                          category={props.category}
+                          category={() => 'nostr'}
                           classifier={classifier}
                           mlText={post.mlText}
                           prediction={post.prediction}

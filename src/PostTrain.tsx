@@ -10,9 +10,10 @@ const PostTrain = (props: any) => {
     props.classifier().addDocument(props.mlText, mlClass)
     props.classifier().train()
     const classifierEntry = {
-        id: props.category,
+        id: props.category(),
         model: JSON.stringify(props.classifier(), null, 2)
         }
+    console.log(props.classifierEntry)
     props.putClassifier(classifierEntry)
   }
 
@@ -38,27 +39,24 @@ const PostTrain = (props: any) => {
   }
 
 
-  // const denominator = props.prediction.reduce((accumulator, currentValue) => {
-  // return accumulator + currentValue.value
-  // }, 0.0)
+  const denominator = props.prediction.reduce((accumulator, currentValue) => {
+  return accumulator + currentValue.value
+  }, 0.0)
 
-  // const promoteNumerator = 0.0 + props.prediction.find((predictionEntry) => predictionEntry.label == 'promote')?.value
-  // const suppressNumerator = 0.0 + props.prediction.find((predictionEntry) => ['suppress', 'surpress'].indexOf(predictionEntry.label) !== -1)?.value
+  const promoteNumerator = 0.0 + props.prediction.find((predictionEntry) => predictionEntry.label == 'promote')?.value
+  const suppressNumerator = 0.0 + props.prediction.find((predictionEntry) => ['suppress', 'surpress'].indexOf(predictionEntry.label) !== -1)?.value
 
   return(
     <div style={{"display": "flex", "flex-direction": 'row', 'justify-content':'space-around', 'width': '300px'}}>
-    {/* <div>{Math.round((suppressNumerator / denominator) * 100).toString().replace('NaN',' - ')}%</div> */}
-    <AiOutlineArrowDown class="collapsible__trigger-icon button" onclick={
-      () => {
-            setTimeout(() => {
-            handleComplete()
-            handleTrain('suppress')
-            }, 300)
-        }
-        }/>
+    <div>{Math.round((suppressNumerator / denominator) * 100)?.toString().replace('NaN',' - ')}%</div>
+    <AiOutlineArrowDown class="collapsible__trigger-icon button" onclick={() => setTimeout(() => {
+        handleComplete()
+        handleTrain('suppress')
+        }, 300)
+      }/>
     <Tooltip.Root>
       <Tooltip.Trigger  style={{'padding': 'unset'}}>
-        <Link.Root onClick={() => handleComplete}>{props.category}</Link.Root>
+        <Link.Root onClick={() => setTimeout(() => handleComplete(), 300)}>{props.category()}</Link.Root>
       </Tooltip.Trigger>
       <Tooltip.Portal>
         <Tooltip.Content class="tooltip__content">
@@ -66,15 +64,14 @@ const PostTrain = (props: any) => {
         </Tooltip.Content>
       </Tooltip.Portal>
     </Tooltip.Root>
-      <AiOutlineArrowUp class="collapsible__trigger-icon" onclick={
-        () => {
-          setTimeout(() => {
+      <AiOutlineArrowUp
+        class="collapsible__trigger-icon"
+        onclick={() => setTimeout(() => {
             handleComplete()
             handleTrain('promote')
           }, 300)
-        }
       }/>
-      {/* <div>{Math.round((promoteNumerator / denominator) * 100).toString().replace('NaN',' - ')}%</div> */}
+      <div>{Math.round((promoteNumerator / denominator) * 100)?.toString().replace('NaN',' - ')}%</div>
       <div/>
       <div/>
     </div>
