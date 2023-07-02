@@ -72,14 +72,19 @@ const Categories = (props: {
   }
 
   const handleToggleChecked = (id: string) => {
+
     const valuesForSelectedCategory = props.categories
     .find(categoryEdit => categoryEdit['id'] === id)
-    const newValueObj = (Object.assign(
-      {
+
+    if (valuesForSelectedCategory?.id == undefined) {
+      return
+    }
+
+    const newValueObj = {
         ...valuesForSelectedCategory
-      },
-      {checked: !group.value.checked}
-    ))
+      ,
+      checked: !group.value.checked
+    }
 
     group.setValue(newValueObj)
     props.putCategory(newValueObj)
@@ -106,7 +111,7 @@ const Categories = (props: {
       <Switch.Root
         checked={group.value.checked}
         name="checked"
-        onChange={() => handleToggleChecked(group.value.id)}
+        onChange={() => handleToggleChecked(`${group.value.id}`)}
       />
       <div>
         <Link.Root onClick={(event) => {

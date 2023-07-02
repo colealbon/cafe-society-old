@@ -1,5 +1,4 @@
 import natural from 'natural'
-import {shortUrl} from './tools'
 import {
   createEffect,
   For,
@@ -16,15 +15,28 @@ import PostTrain from './PostTrain'
 import { Collapsible } from "@kobalte/core";
 import "./style.css";
 
+const removePunctuation = (text: string) => {
+  return `${text}`
+    .replace(/[/?…".,#!$%^&*;:{}=_`~()'’‘“”]/g, '')
+    .replace(/\s{2,}/g, ' ');
+};
+
+export const shortUrl = (text: string) => {
+  const theUrl = new URL(text);
+  const newPath = removePunctuation(`${theUrl.hostname}${theUrl.pathname}`)
+    .replace(/-/g, '')
+    .toLowerCase();
+  return newPath;
+};
+
 const Posts = (props: any) => {
   const [classifier, setClassifier] = createSignal(new natural.BayesClassifier());
   const [processedPostsForSession, setProcessedPostsForSession] = createSignal([])
   createEffect(() => {
     const classifierEntry = [props.classifiers].flat().find((classifierEntry: any) => classifierEntry?.id == props.category)
-    const classifierJSON = classifierEntry?.model
     let classifierForCategory = new natural.BayesClassifier()
-    if (`${classifierJSON}` != '' && `${classifierJSON}` != 'undefined') {
-      classifierForCategory = natural.BayesClassifier.restore(JSON.parse(classifierJSON));
+    if (`${classifierEntry?.mode}` != '') {
+      classifierForCategory = natural.BayesClassifier.restore(JSON.parse(classifierEntry?.model));
     }
     setClassifier(classifierForCategory)
   })

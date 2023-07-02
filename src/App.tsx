@@ -70,7 +70,7 @@ function createStoredSignal<T>(
   defaultValue: T,
   storage = localStorage
 ): Signal<T> {
-  const initialValue = storage.getItem(key)
+  const initialValue = storage.getItem(key) && storage.getItem(key) != null
     ? JSON.parse(`${storage.getItem(key)}`) as T
     : defaultValue;
   const [value, setValue] = createSignal<T>(initialValue);
@@ -255,7 +255,7 @@ const App: Component = () => {
   }
   const cleanNostrPost = (post: any) => {
     return {
-      mlText: [tokenizer.tokenize(
+      mlText: removeStopwords([tokenizer.tokenize(
         convert(
           `${post.content}`,
           {
@@ -265,9 +265,9 @@ const App: Component = () => {
             linkBrackets: false
           }
         ))]
-        .flat()
-        .filter(word => word && word.length < 24)
-        .filter(word => `${word}` != '')
+        .flat())
+        .filter((word: string)=> word && word.length < 24)
+        .filter((word: string) => `${word}` != '')
         .join(' ')
         .toLowerCase() || '',
       ...post
@@ -277,7 +277,7 @@ const App: Component = () => {
   const applyPrediction = (post: any, category: string) => {
     const classifierEntry = classifiers.find((classifierEntry) => classifierEntry?.id == category)
     let classifierForCategory = new natural.BayesClassifier()
-    if (classifierEntry?.model != null) {
+    if (classifierEntry?.model != null && classifierEntry?.model != 'undefined') {
       classifierForCategory = natural.BayesClassifier.restore(JSON.parse(classifierEntry.model));
     }
     const prediction = classifierForCategory.getClassifications(post?.mlText)

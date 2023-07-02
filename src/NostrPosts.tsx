@@ -13,7 +13,7 @@ import {
 } from 'solid-js'
 import { Collapsible, Link } from "@kobalte/core";
 
-const NostrPosts = (props) => {
+const NostrPosts = (props: any) => {
   const [classifier, setClassifier] = createSignal(new natural.BayesClassifier());
   const [processedPostsForSession, setProcessedPostsForSession] = createSignal([])
 
@@ -104,19 +104,19 @@ const NostrPosts = (props) => {
       </div>
         <For each={
           props.nostrPosts
-          .filter(post => post.mlText !== '')
-          .filter((postItem) => {
+          .filter((post: any) => post.mlText !== '')
+          .filter((postItem: any) => {
             return Array.from(processedPostsForSession()).indexOf(postItem.mlText) == -1
           })
-          .filter((postItem) => {
+          .filter((postItem: any) => {
             const processedPostsForNostr = props.processedPosts.slice()
-            .find(processedPostEntry => processedPostEntry?.id === 'nostr')?.processedPosts.slice()
+            .find((processedPostEntry: any) => processedPostEntry?.id === 'nostr')?.processedPosts.slice()
             if (processedPostsForNostr== undefined) {
               return true
             }
             return processedPostsForNostr.indexOf(postItem.mlText) == -1
           })
-          .map(post => {
+          .map((post: any) => {
             const prediction = classifier().getClassifications(post.mlText)
             const docCount = classifier().docs.length
             return {
@@ -145,7 +145,7 @@ const NostrPosts = (props) => {
                             {`${post.pubkey.substring(0,5)}...${post.pubkey.substring(post.pubkey.length - 5)}`}
                           </Link.Root>
                         </Show>
-                        <div style={{'color': 'grey'}}>{`${parseInt((((Date.now() / 1000) - post.created_at) / 60))?.toString()} minutes ago`}</div>
+                        <div style={{'color': 'grey'}}>{`${(((Date.now() / 1000) - parseFloat(post.created_at)) / 60)} minutes ago`}</div>
                         <div>
                           {post.content}
                         </div>
