@@ -11,6 +11,7 @@ body {
   width: 100%;
 }
 
+
 .combobox__control {
   display: inline-flex;
   justify-content: space-between;
@@ -105,6 +106,7 @@ body {
   font-size: 16px;
   line-height: 1;
   color: hsl(240 4% 16%);
+  background-color: 'red';
   border-radius: 4px;
   display: flex;
   align-items: center;
@@ -138,6 +140,17 @@ body {
   align-items: center;
   justify-content: center;
 }
+
+
+.combobox__content {
+  transform-origin: var(--kb-combobox-content-transform-origin);
+  animation: contentHide 250ms ease-in forwards;
+}
+.combobox__content[data-expanded] {
+  animation: contentShow 250ms ease-out;
+}
+
+
 @keyframes contentShow {
   from {
     opacity: 0;
@@ -154,10 +167,11 @@ body {
     transform: translateY(0);
   }
   to {
-      opacity: 0;
+    opacity: 0;
     transform: translateY(-8px);
   }
 }
+
 
 .text-field {
   display: flex;

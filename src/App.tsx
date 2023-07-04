@@ -117,6 +117,7 @@ const parseRSS = (content:any) => {
       mlText: removeStopwords([
         tokenizer.tokenize(
         convert(`${itemEntry.title} ${itemEntry.postSummary}`
+        .replace(/\d+/g, '')
         .replace('undefined','')
         .replace(/[^\p{L}\s]/gu,"") || ''))
       ]
@@ -154,6 +155,7 @@ const parseAtom = (content: any) => {
       mlText: removeStopwords([
           tokenizer.tokenize(
           convert(`${itemEntry.title} ${itemEntry.postSummary}`
+          .replace(/\d+/g, '')
           .replace('undefined','')
           .replace(/[^\p{L}\s]/gu,"") || ''))
         ]
@@ -257,7 +259,7 @@ const App: Component = () => {
     return {
       mlText: removeStopwords([tokenizer.tokenize(
         convert(
-          `${post.content}`,
+          `${post.content}`.replace(/\d+/g, ''),
           {
             ignoreLinks: true,
             ignoreHref: true,

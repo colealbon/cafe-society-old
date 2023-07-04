@@ -1,46 +1,49 @@
 import {
+  createFilter,
+  Button,
+  Switch,
+  Combobox,
+  Collapsible,
+  Separator
+} from "@kobalte/core";
+import {
   For,
   createEffect,
   createSignal,
   Show
 } from 'solid-js';
-import { BiSolidSortAlt } from 'solid-icons/bi'
-import { FaSolidCheck } from 'solid-icons/fa'
-import { Collapsible } from "@kobalte/core";
-import Heading from './Heading'
-
 import {
   createFormGroup,
   createFormControl,
 } from "solid-forms";
 import TextInput from './TextInput'
-import {
-  Button,
-  Switch,
-  Combobox
-} from "@kobalte/core";
-
-import {
-  VsTrash
-} from 'solid-icons/vs'
-
+import { BiSolidSortAlt as CaretSortIcon } from 'solid-icons/bi'
+import { FaSolidCheck  as CheckIcon} from 'solid-icons/fa'
+import { ImCross as CrossIcon } from 'solid-icons/im'
+import { VsAdd, VsTrash } from 'solid-icons/vs'
 import { Feed , Category} from './db-fixture'
+import Heading from './Heading'
 const Feeds = (props: {
-  feeds: Feed[],
-  categories: Category[]
-  // eslint-disable-next-line no-unused-vars
-  putFeed: (feed: Feed) => void,
-  // eslint-disable-next-line no-unused-vars
-  removeFeed: (feed: Feed) => void
-}) => {
-  const [newFeed, setNewFeed] = createSignal();
-
-  createEffect(() => {
-    const theNewFeed = newFeed()
-    console.log(theNewFeed)
-    props.putFeed(theNewFeed)
-  })
-
+    feeds: Feed[],
+    categories: Category[]
+    // eslint-disable-next-line no-unused-vars
+    putFeed: (feed: Feed) => void,
+    // eslint-disable-next-line no-unused-vars
+    removeFeed: (feed: Feed) => void
+  }) => {
+  const [categoryValues, setCategoryValues] = createSignal([]);
+  const filter = createFilter({ sensitivity: "base" });
+  const [options, setOptions] = createSignal<string[]>();
+  const [ newFeed , setNewFeed ] = createSignal({});
+  const onOpenChange = (isOpen: boolean, triggerMode?: Combobox.ComboboxTriggerMode) => {
+    // Show all options on ArrowDown/ArrowUp and button click.
+    if (isOpen && triggerMode === "manual") {
+      setOptions(props.categories.map(category => category.id));
+    }
+  };
+  const onInputChange = (value: string) => {
+    setOptions(options.filter(option => filter.contains(option, value)));
+  };
   const group = createFormGroup({
     id: createFormControl(""),
     checked: createFormControl(true),
@@ -49,6 +52,7 @@ const Feeds = (props: {
 
   const onSubmit = async (event: any) => {
     event.preventDefault()
+    console.log(group.value)
     if (group.isSubmitted) {
       console.log('already submitted')
       return;
@@ -70,25 +74,17 @@ const Feeds = (props: {
         },
         ...newFeed
       }
+      newFeedObj.categories = categoryValues()
+      console.log(newFeedObj)
       props.putFeed(newFeedObj)
     })
-
     group.setValue({
       id:'',
       checked:true,
-      categories:['']
+      categories: []
     })
+    setCategoryValues([])
   };
-
-  const handleKeyClick = (id: string) => {
-    const valuesForSelectedFeed = props.feeds
-      .find(feedEdit => feedEdit['id'] === id)
-    group.setValue(Object.assign({
-        id:'',
-        checked:true,
-        categories: ['']
-      }, valuesForSelectedFeed))
-  }
 
   const handleToggleChecked = (id: string) => {
     const valuesForSelectedFeed = props.feeds
@@ -97,75 +93,109 @@ const Feeds = (props: {
       {
         ...valuesForSelectedFeed
       },
-      {checked: !valuesForSelectedFeed.checked},
-      {categories: valuesForSelectedFeed.categories.slice()}
+      {checked: !valuesForSelectedFeed?.checked}
     ))
     // props.putFeed(newValueObj)
     setNewFeed(newValueObj)
   }
 
+  createEffect(() => {
+    const theNewFeed = Object.assign({
+      id:'',
+      checked:true,
+      categories: []
+    }, newFeed())
+    props.putFeed(theNewFeed)
+  })
+
+  const handleKeyClick = (id: string) => {
+    const valuesForSelectedFeed = props.feeds
+      .find(feedEdit => feedEdit['id'] === id)
+    group.setValue(Object.assign({
+        id:'',
+        checked:true
+      }, valuesForSelectedFeed))
+    setCategoryValues(valuesForSelectedFeed?.categories)
+  }
+
   return (
-    <div>
+    <>
       <div>
         <Heading>
           <div>{'Edit Feeds'}</div>
         </Heading>
       </div>
-      <div class="text-field">
-        <form onSubmit={onSubmit}>
-          <label for="id">Feed URL</label>
-          <TextInput name="id" control={group.controls.id} />
-          <Combobox.Root
-            name="categories"
-            multiple
-            options={props.categories.map(item => item.id)}
-            // onInputChange={onInputChange}
-            // onOpenChange={onOpenChange}
-            placeholder="Search a category"
-            itemComponent={props => (
-              <Combobox.Item item={props.item}
-                style={{
-                  "outline-width": "3px",
-                  "outline-color": "black",
-                  "width": "300px",
-                  "font-size": "large",
-                  "display": "flex",
-                  "flex-direction": "row",
-                  "background-color": "lightgrey",
-                  "justify-content": "flex-start",
-                  "padding": "10px 10px 10px 10px"
-                }}
-              >
-              <Combobox.ItemLabel>{props.item.rawValue}</Combobox.ItemLabel>
-                <Combobox.ItemIndicator>
-                  <FaSolidCheck />
-                </Combobox.ItemIndicator>
-              </Combobox.Item>
-            )}
-          >
-            <Combobox.HiddenSelect />
-            <Combobox.Control aria-label="categories">
-              <Combobox.Input />
+      <Combobox.Root<string>
+        multiple
+        options={props.categories.map(category => category.id)}
+        value={categoryValues()}
+        onChange={setCategoryValues}
+        onInputChange={onInputChange}
+        onOpenChange={onOpenChange}
+        placeholder="Search some fruits…"
+        itemComponent={props => (
+          <Combobox.Item item={props.item}>
+            <Combobox.ItemLabel>{props.item.rawValue}</Combobox.ItemLabel>
+            <Combobox.ItemIndicator>
+              <CheckIcon />
+            </Combobox.ItemIndicator>
+          </Combobox.Item>
+        )}
+      >
+
+  <form onSubmit={onSubmit}>
+    <label for="id">Feed URL</label>
+    <TextInput name="id" control={group.controls.id} />
+    <div>
+      <Button.Root onClick={(event) => {
+        event.preventDefault()
+        onSubmit(event)
+      }}>
+     <VsAdd />
+    </Button.Root>
+    <Button.Root onClick={(event) => {
+        event.preventDefault()
+        onSubmit(event)
+      }}>Submit</Button.Root>
+    </div>
+    </form>
+        <Combobox.Control<string> aria-label="Fruits">
+          {state => (
+            <>
+              <div>
+                <For each={state.selectedOptions()}>
+                  {option => (
+                    <span onPointerDown={e => e.stopPropagation()}>
+                      {option}
+                      <button onClick={() => state.remove(option)}>
+                        <div style={{'color': 'red'}}><CrossIcon /></div>
+                      </button>
+                    </span>
+                  )}
+                </For>
+                <Combobox.Input />
+              </div>
+              <button onPointerDown={e => e.stopPropagation()} onClick={state.clear}>
+              <div style={{'color': 'red'}}><CrossIcon /></div>
+              </button>
               <Combobox.Trigger>
                 <Combobox.Icon>
-                  <BiSolidSortAlt />
+                  <CaretSortIcon />
                 </Combobox.Icon>
               </Combobox.Trigger>
-            </Combobox.Control>
-            <Combobox.Portal>
-              <Combobox.Content>
-                <Combobox.Listbox />
-              </Combobox.Content>
-            </Combobox.Portal>
-          </Combobox.Root>
-        </form>
-        <Switch.Root />
-      </div>
-
-      <div />
-      <div>
-        <h4 class="text-muted">Feeds</h4>
-        <For each={props.feeds}>
+            </>
+          )}
+        </Combobox.Control>
+        <Combobox.Portal>
+          <Combobox.Content>
+            <Combobox.Listbox style={{'background-color': 'white'}}/>
+          </Combobox.Content>
+        </Combobox.Portal>
+      </Combobox.Root>
+      <p>feed categories: {categoryValues().join(", ")}.</p>
+      <Separator.Root />
+      <strong style={{'font-size': 'large'}}>feeds:</strong>
+      <For each={props.feeds}>
           {(feed) => (
             <Show when={feed.id != ''}>
               <Collapsible.Root class="collapsible" defaultOpen={true}>
@@ -195,8 +225,38 @@ const Feeds = (props: {
             </Show>
           )}
         </For>
-      </div>
-    </div>
-  )
+    </>
+  );
 }
-export default Feeds;
+
+export default Feeds
+
+// const Feeds = (props: {
+//   feeds: Feed[],
+//   categories: Category[]
+//   // eslint-disable-next-line no-unused-vars
+//   putFeed: (feed: Feed) => void,
+//   // eslint-disable-next-line no-unused-vars
+//   removeFeed: (feed: Feed) => void
+// }) => {
+//   const [newFeed, setNewFeed] = createSignal();
+//   // const [feedCategories, setFeedCategories] = createSignal([]);
+
+//   const onCategoriesInputChange = (value: string) => {
+//     console.log('*******')
+//     console.log(value)
+//     // const valuesForSelectedFeed = props.feeds
+//     // .find(feed => feed['id'] === id)
+
+//     // const newValueObj = (Object.assign(
+//     //   {
+//     //     ...valuesForSelectedFeed
+//     //   },
+//     //   {categories: valuesForSelectedFeed.categories.slice()}
+//     // ))
+//     // props.putFeed(newValueObj)
+//     // setNewFeed(newValueObj)
+
+//     // console.log(value)
+//     //setOptions(ALL_OPTIONS.filter(option => filter.contains(option, value)));
+//   };

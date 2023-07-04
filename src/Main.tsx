@@ -9,7 +9,9 @@ const Main = (props) => {
       'margin-left': `${props.isOpen() === true ? props.navBarWidth : 0}px`
     }}>
     <div class='main' style={{"margin-left": "10px"}}>
+      <div style={{'display':'flex', 'flex-direction':'column'}}>
       {c()}
+      </div>
     </div>
   </div>
   )

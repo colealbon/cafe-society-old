@@ -145,7 +145,7 @@ const NostrPosts = (props: any) => {
                             {`${post.pubkey.substring(0,5)}...${post.pubkey.substring(post.pubkey.length - 5)}`}
                           </Link.Root>
                         </Show>
-                        <div style={{'color': 'grey'}}>{`${(((Date.now() / 1000) - parseFloat(post.created_at)) / 60)} minutes ago`}</div>
+                        <div style={{'color': 'grey'}}>{`${parseInt((((Date.now() / 1000) - parseFloat(post.created_at)) / 60).toString())} minutes ago`}</div>
                         <div>
                           {post.content}
                         </div>
