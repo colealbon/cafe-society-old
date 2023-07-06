@@ -111,7 +111,7 @@ const Categories = (props: {
       <Switch.Root
         checked={group.value.checked}
         name="checked"
-        onChange={() => handleToggleChecked(`${group.value.id}`)}
+        onChange={handleToggleChecked(`${group.value.id}`)}
       />
       <div>
         <Link.Root onClick={(event) => {
@@ -149,6 +149,11 @@ const Categories = (props: {
             <VsTrash />
           </Link.Root>
         </div>
+        <Switch.Root
+          class="switch"
+          defaultChecked={category.checked}
+          onClick={() => handleToggleChecked(category.id)}
+        />
         <div style={
         {
           'padding': '8px 8px 8px 32px',

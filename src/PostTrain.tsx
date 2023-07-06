@@ -7,11 +7,10 @@ import {
 
 const PostTrain = (props: any) => {
   const handleTrain = (mlClass: string) => {
-    props.classifier().addDocument(props.mlText, mlClass)
-    props.classifier().train()
+    props.classifier().learn(props.mlText, mlClass)
     const classifierEntry = {
         id: props.category(),
-        model: JSON.stringify(props.classifier(), null, 2)
+        model: props.classifier().exportJSON()
         }
     console.log(props.classifierEntry)
     props.putClassifier(classifierEntry)
@@ -38,13 +37,12 @@ const PostTrain = (props: any) => {
     props.setProcessedPostsForSession(Array.from(new Set([...props.processedPostsForSession, ...[`${props.mlText}`]])))
   }
 
-
-  const denominator = props.prediction.reduce((accumulator, currentValue) => {
-  return accumulator + currentValue.value
+  const denominator = props.prediction.reduce((accumulator: number, currentValue: number) => {
+  return accumulator + currentValue[1]
   }, 0.0)
 
-  const promoteNumerator = 0.0 + props.prediction.find((predictionEntry) => predictionEntry.label == 'promote')?.value
-  const suppressNumerator = 0.0 + props.prediction.find((predictionEntry) => ['suppress', 'surpress'].indexOf(predictionEntry.label) !== -1)?.value
+  const promoteNumerator = 0.0 + props.prediction.find((predictionEntry) => predictionEntry[0] == 'promote')[1]
+  const suppressNumerator = 0.0 + props.prediction.find((predictionEntry) => predictionEntry[0]  == 'suppress')[1]
 
   return(
     <div style={{"display": "flex", "flex-direction": 'row', 'justify-content':'space-around', 'width': '300px'}}>

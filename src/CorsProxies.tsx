@@ -146,7 +146,7 @@ const CorsProxies = (props: {
         }}>
           <Link.Root
             // eslint-disable-next-line solid/reactivity
-            onClick={() => {
+            onClick={(event) => {
               event.preventDefault()
               handleKeyClick(corsProxy.id)
             }}

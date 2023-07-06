@@ -52,7 +52,7 @@ const defaultFeeds =
   },
   {
     "id": "https://bitcoinops.org/feed.xml",
-    "checked": true,
+    "checked": false,
     "categories": ["bitcoin"]
   },
   {

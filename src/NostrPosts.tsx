@@ -1,4 +1,4 @@
-import natural from 'natural'
+import Classifier from 'wink-naive-bayes-text-classifier';
 import PostTrain from './PostTrain'
 import Heading from './Heading'
 import { NostrKey } from './db-fixture'
@@ -14,15 +14,14 @@ import {
 import { Collapsible, Link } from "@kobalte/core";
 
 const NostrPosts = (props: any) => {
-  const [classifier, setClassifier] = createSignal(new natural.BayesClassifier());
+  const [classifier, setClassifier] = createSignal(Classifier());
   const [processedPostsForSession, setProcessedPostsForSession] = createSignal([])
 
   createEffect(() => {
     const classifierEntry = [props.classifiers].flat().find((classifierEntry) => classifierEntry.id == 'nostr')
-    const classifierJSON = classifierEntry?.model
-    let classifierForCategory = new natural.BayesClassifier()
-    if (`${classifierJSON}` != '' && `${classifierJSON}` != 'undefined') {
-      classifierForCategory = natural.BayesClassifier.restore(JSON.parse(classifierJSON));
+    let classifierForCategory = Classifier()
+    if (classifierEntry?.model != null) {
+      classifierForCategory = classifierForCategory.importJSON(classifierEntry.model)
     }
     setClassifier(classifierForCategory)
   })
@@ -116,16 +115,16 @@ const NostrPosts = (props: any) => {
             }
             return processedPostsForNostr.indexOf(postItem.mlText) == -1
           })
-          .map((post: any) => {
-            const prediction = classifier().getClassifications(post.mlText)
-            const docCount = classifier().docs.length
-            return {
-              ...post,
-              ...{
-                'prediction': prediction,
-                'docCount': docCount
-              }}
-          })
+          // .map((post: any) => {
+          //   const prediction = classifier().computeOdds(post.mlText)
+          //   const docCount = Object.values(classifier().stats().labelWiseSamples).reduce((val, runningTotal: any) => val as number + runningTotal)
+          //   return {
+          //     ...post,
+          //     ...{
+          //       'prediction': prediction,
+          //       'docCount': docCount
+          //     }}
+          // })
           } fallback={<>Loading</>}>
           {(post) => {
             return (

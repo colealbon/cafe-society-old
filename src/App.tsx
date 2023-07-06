@@ -1,6 +1,7 @@
 import { convert } from 'html-to-text'
-import { removeStopwords } from 'stopword'
-import natural from 'natural'
+import WinkClassifier from 'wink-naive-bayes-text-classifier';
+import winkNLP from 'wink-nlp'
+import model from 'wink-eng-lite-web-model'
 
 import {
   Suspense,
@@ -53,7 +54,6 @@ const navBarWidth = 250
 const fetcher = NostrFetcher.init();
 const db = new DbFixture();
 const parser = new XMLParser();
-const tokenizer = new natural.WordTokenizer
 
 db.on("populate", () => {
   db.nostrkeys.bulkAdd(defaultNostrKeys as NostrKey[]);
@@ -81,6 +81,21 @@ function createStoredSignal<T>(
   }) as typeof setValue;
   return [value, setValueAndStore];
 }
+
+const nlp = winkNLP( model );
+const its = nlp.its;
+
+const prepTask = function ( text: string ) {
+  const tokens: string[] = [];
+  nlp.readDoc(text)
+      .tokens()
+      // Use only words ignoring punctuations etc and from them remove stop words
+      .filter( (t: any) => ( t.out(its.type) === 'word' && !t.out(its.stopWordFlag) ) )
+      // Handle negation and extract stem of the word
+      .each( (t: any) => tokens.push( (t.out(its.negationFlag)) ? '!' + t.out(its.stem) : t.out(its.stem) ) );
+  return tokens;
+};
+
 const parseRSS = (content:any) => {
   const feedTitle = content.rss.channel.title
   const feedLink = content.rss.channel.link
@@ -114,18 +129,9 @@ const parseRSS = (content:any) => {
       ...itemEntry,
       postId: itemEntry.link || itemEntry.guid,
       postTitle: itemEntry.title,
-      mlText: removeStopwords([
-        tokenizer.tokenize(
-        convert(`${itemEntry.title} ${itemEntry.postSummary}`
-        .replace(/\d+/g, '')
-        .replace('undefined','')
-        .replace(/[^\p{L}\s]/gu,"") || ''))
-      ]
-      .flat()
-      .filter(word => word && word.length < 24)
-      .filter(word => `${word}` != ''))
-      .join(' ')
-      .toLowerCase()
+      mlText: prepTask(convert(`${itemEntry.title} ${itemEntry.postSummary}`))
+        .join(' ')
+        .toLowerCase()
     })
   )
 }
@@ -151,17 +157,8 @@ const parseAtom = (content: any) => {
     .map((itemEntry: any) => ({
       ...itemEntry,
       postId: itemEntry?.id,
-      postTitle: itemEntry.title,
-      mlText: removeStopwords([
-          tokenizer.tokenize(
-          convert(`${itemEntry.title} ${itemEntry.postSummary}`
-          .replace(/\d+/g, '')
-          .replace('undefined','')
-          .replace(/[^\p{L}\s]/gu,"") || ''))
-        ]
-        .flat()
-        .filter(word => word && word.length < 24)
-        .filter(word => `${word}` != ''))
+      postTitle: `${itemEntry.title}`,
+      mlText: prepTask(convert(`${itemEntry.title} ${itemEntry.postSummary}`))
         .join(' ')
         .toLowerCase()
     })
@@ -196,6 +193,7 @@ const shortUrl = (text: string) => {
 
 
 const App: Component = () => {
+
   const categories = createDexieArrayQuery(() => db.categories.toArray());
   const nostrKeys = createDexieArrayQuery(() => db.nostrkeys.toArray());
   const ignoreNostrKeys = createDexieArrayQuery(() => db.nostrkeys
@@ -257,8 +255,7 @@ const App: Component = () => {
   }
   const cleanNostrPost = (post: any) => {
     return {
-      mlText: removeStopwords([tokenizer.tokenize(
-        convert(
+      mlText: prepTask(convert(
           `${post.content}`.replace(/\d+/g, ''),
           {
             ignoreLinks: true,
@@ -266,10 +263,7 @@ const App: Component = () => {
             ignoreImage: true,
             linkBrackets: false
           }
-        ))]
-        .flat())
-        .filter((word: string)=> word && word.length < 24)
-        .filter((word: string) => `${word}` != '')
+        ))
         .join(' ')
         .toLowerCase() || '',
       ...post
@@ -277,13 +271,41 @@ const App: Component = () => {
   }
 
   const applyPrediction = (post: any, category: string) => {
+
     const classifierEntry = classifiers.find((classifierEntry) => classifierEntry?.id == category)
-    let classifierForCategory = new natural.BayesClassifier()
-    if (classifierEntry?.model != null && classifierEntry?.model != 'undefined') {
-      classifierForCategory = natural.BayesClassifier.restore(JSON.parse(classifierEntry.model));
+
+    let classifierForCategory = WinkClassifier()
+    try {
+      classifierForCategory.importJSON(classifierEntry?.model);
+    } catch (error) {
+      return {
+        ...post,
+        ...{
+          'prediction': [
+            [ 'promote', .5 ],
+            [ 'suppress', .5 ]
+          ],
+          'docCount': Object.values(classifierForCategory.stats().labelWiseSamples).length
+        }
+      }
     }
-    const prediction = classifierForCategory.getClassifications(post?.mlText)
-    const docCount = classifierForCategory.docs.length
+    classifierForCategory.definePrepTasks( [ prepTask ] );
+    classifierForCategory.defineConfig( { considerOnlyPresence: true, smoothingFactor: 0.5 } );
+    if (Object.values(classifierForCategory.stats().labelWiseSamples).length < 2) {
+      return {
+        ...post,
+        ...{
+          'prediction': [
+            [ 'promote', .5 ],
+            [ 'suppress', .5 ]
+          ],
+          'docCount': Object.values(classifierForCategory.stats().labelWiseSamples).length
+        }
+      }
+    }
+    classifierForCategory.consolidate()
+    const prediction = classifierForCategory.computeOdds(post?.mlText)
+    const docCount = Object.values(classifierForCategory.stats().labelWiseSamples).reduce((val, runningTotal: any) => val as number + runningTotal)
     return {
       ...post,
       ...{
@@ -404,6 +426,7 @@ const App: Component = () => {
       .filter(nostrPost => !ignoreNostrKeys.find(ignoreKey => ignoreKey.publicKey == nostrPost.pubkey))
       .map(nostrPost => cleanNostrPost(nostrPost))
       .map(post => applyPrediction(post, 'nostr'))
+
       setNostrPosts(cleanedNostrPosts)
     })
   })

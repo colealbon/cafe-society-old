@@ -75,7 +75,6 @@ const Feeds = (props: {
         ...newFeed
       }
       newFeedObj.categories = categoryValues()
-      console.log(newFeedObj)
       props.putFeed(newFeedObj)
     })
     group.setValue({

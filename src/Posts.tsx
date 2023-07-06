@@ -1,4 +1,4 @@
-import natural from 'natural'
+import Classifier from 'wink-naive-bayes-text-classifier';
 import {
   createEffect,
   For,
@@ -22,21 +22,28 @@ const removePunctuation = (text: string) => {
 };
 
 export const shortUrl = (text: string) => {
-  const theUrl = new URL(text);
-  const newPath = removePunctuation(`${theUrl.hostname}${theUrl.pathname}`)
-    .replace(/-/g, '')
-    .toLowerCase();
-  return newPath;
+  try {
+    const theUrl = new URL(text);
+    const newPath = removePunctuation(`${theUrl.hostname}${theUrl.pathname}`)
+      .replace(/-/g, '')
+      .toLowerCase();
+    return newPath;
+  } catch (error) {
+    console.log(error)
+    console.log(text)
+  }
 };
 
 const Posts = (props: any) => {
-  const [classifier, setClassifier] = createSignal(new natural.BayesClassifier());
+  const [classifier, setClassifier] = createSignal(Classifier());
   const [processedPostsForSession, setProcessedPostsForSession] = createSignal([])
   createEffect(() => {
     const classifierEntry = [props.classifiers].flat().find((classifierEntry: any) => classifierEntry?.id == props.category)
-    let classifierForCategory = new natural.BayesClassifier()
-    if (`${classifierEntry?.mode}` != '') {
-      classifierForCategory = natural.BayesClassifier.restore(JSON.parse(classifierEntry?.model));
+    let classifierForCategory = Classifier()
+    if (classifierEntry?.model != null) {
+      console.log(classifierEntry.model)
+      classifierForCategory.importJSON(classifierEntry.model)
+      // classifierForCategory = natural.BayesClassifier.restore(JSON.parse(classifierEntry?.model));
     }
     setClassifier(classifierForCategory)
   })
