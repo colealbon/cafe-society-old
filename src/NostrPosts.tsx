@@ -1,4 +1,3 @@
-import Classifier from 'wink-naive-bayes-text-classifier';
 import PostTrain from './PostTrain'
 import Heading from './Heading'
 import { NostrKey } from './db-fixture'
@@ -14,16 +13,12 @@ import {
 import { Collapsible, Link } from "@kobalte/core";
 
 const NostrPosts = (props: any) => {
-  const [classifier, setClassifier] = createSignal(Classifier());
+  const [classifier, setClassifier] = createSignal();
   const [processedPostsForSession, setProcessedPostsForSession] = createSignal([])
 
   createEffect(() => {
     const classifierEntry = [props.classifiers].flat().find((classifierEntry) => classifierEntry.id == 'nostr')
-    let classifierForCategory = Classifier()
-    if (classifierEntry?.model != null) {
-      classifierForCategory = classifierForCategory.importJSON(classifierEntry.model)
-    }
-    setClassifier(classifierForCategory)
+    setClassifier(classifierEntry?.model)
   })
 
   const handleKeyClick = (publicKey: string) => {
@@ -151,9 +146,10 @@ const NostrPosts = (props: any) => {
                         <Collapsible.Trigger class="collapsible__trigger">
                         <PostTrain
                           category={() => 'nostr'}
-                          classifier={classifier}
+                          classifier={classifier()}
                           mlText={post.mlText}
                           prediction={post.prediction}
+                          docCount={post.docCount}
                           postId={post.id}
                           putProcessedPost={props.putProcessedPost}
                           putClassifier={props.putClassifier}

@@ -1,18 +1,39 @@
+import WinkClassifier from 'wink-naive-bayes-text-classifier';
+import winkNLP from 'wink-nlp'
+import model from 'wink-eng-lite-web-model'
 import { Link } from "@kobalte/core";
 import { Tooltip } from "@kobalte/core";
 import {
-    AiOutlineArrowUp,
-    AiOutlineArrowDown
-  } from 'solid-icons/ai'
+  AiOutlineArrowUp,
+  AiOutlineArrowDown
+} from 'solid-icons/ai'
 
 const PostTrain = (props: any) => {
   const handleTrain = (mlClass: string) => {
-    props.classifier().learn(props.mlText, mlClass)
+    let winkClassifier = WinkClassifier()
+    const prepTask = function ( text: string ) {
+      const tokens: string[] = [];
+      nlp.readDoc(text)
+          .tokens()
+          // Use only words ignoring punctuations etc and from them remove stop words
+          .filter( (t: any) => ( t.out(its.type) === 'word' && !t.out(its.stopWordFlag) ) )
+          // Handle negation and extract stem of the word
+          .each( (t: any) => tokens.push( (t.out(its.negationFlag)) ? '!' + t.out(its.stem) : t.out(its.stem) ) );
+      return tokens;
+    };
+    winkClassifier.definePrepTasks( [ prepTask ] );
+    winkClassifier.defineConfig( { considerOnlyPresence: true, smoothingFactor: 0.5 } );
+    if (props.classifier != null) {
+      winkClassifier.importJSON(props.classifier)
+    }
+    const nlp = winkNLP( model );
+    const its = nlp.its;
+
+    winkClassifier.learn(props.mlText, mlClass)
     const classifierEntry = {
         id: props.category(),
-        model: props.classifier().exportJSON()
+        model: winkClassifier.exportJSON()
         }
-    console.log(props.classifierEntry)
     props.putClassifier(classifierEntry)
   }
 
@@ -37,13 +58,17 @@ const PostTrain = (props: any) => {
     props.setProcessedPostsForSession(Array.from(new Set([...props.processedPostsForSession, ...[`${props.mlText}`]])))
   }
 
-  const denominator = props.prediction.reduce((accumulator: number, currentValue: number) => {
+  const denominator = props.prediction?.reduce((accumulator: number, currentValue: number) => {
   return accumulator + currentValue[1]
-  }, 0.0)
+  }, 100.0)
 
-  const promoteNumerator = 0.0 + props.prediction.find((predictionEntry) => predictionEntry[0] == 'promote')[1]
-  const suppressNumerator = 0.0 + props.prediction.find((predictionEntry) => predictionEntry[0]  == 'suppress')[1]
+  let promoteNumerator = 0.0
+  let suppressNumerator = 0.0
 
+  if (!props.prediction.find((predictionEntry) => predictionEntry[0] == 'unknown')) {
+    promoteNumerator = 0.0 + props.prediction?.find((predictionEntry) => predictionEntry[0] == 'promote')[1]
+    suppressNumerator = 0.0 + props.prediction?.find((predictionEntry) => predictionEntry[0]  == 'suppress')[1]
+  }
   return(
     <div style={{"display": "flex", "flex-direction": 'row', 'justify-content':'space-around', 'width': '300px'}}>
     <div>{Math.round((suppressNumerator / denominator) * 100)?.toString().replace('NaN',' - ')}%</div>
@@ -58,7 +83,7 @@ const PostTrain = (props: any) => {
       </Tooltip.Trigger>
       <Tooltip.Portal>
         <Tooltip.Content class="tooltip__content">
-          {`ML document count: ${Object.assign(props.classifier()).docs.length}`}
+          {`ML document count: ${props.docCount}`}
         </Tooltip.Content>
       </Tooltip.Portal>
     </Tooltip.Root>

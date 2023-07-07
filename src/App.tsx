@@ -2,7 +2,6 @@ import { convert } from 'html-to-text'
 import WinkClassifier from 'wink-naive-bayes-text-classifier';
 import winkNLP from 'wink-nlp'
 import model from 'wink-eng-lite-web-model'
-
 import {
   Suspense,
   createEffect,
@@ -55,6 +54,9 @@ const fetcher = NostrFetcher.init();
 const db = new DbFixture();
 const parser = new XMLParser();
 
+const nlp = winkNLP( model );
+const its = nlp.its;
+
 db.on("populate", () => {
   db.nostrkeys.bulkAdd(defaultNostrKeys as NostrKey[]);
   db.nostrrelays.bulkAdd(defaultNostrRelays as NostrRelay[]);
@@ -81,9 +83,6 @@ function createStoredSignal<T>(
   }) as typeof setValue;
   return [value, setValueAndStore];
 }
-
-const nlp = winkNLP( model );
-const its = nlp.its;
 
 const prepTask = function ( text: string ) {
   const tokens: string[] = [];
@@ -271,46 +270,49 @@ const App: Component = () => {
   }
 
   const applyPrediction = (post: any, category: string) => {
-
     const classifierEntry = classifiers.find((classifierEntry) => classifierEntry?.id == category)
+    if (classifierEntry?.model == null) {
+      const postWithPrediction = {
+        ...post,
+        ...{
+          'prediction': [
+            [ 'promote', .5 ],
+            [ 'suppress', .5 ]
+          ]
+        }
+      }
+      return postWithPrediction
+    }
+    let winkClassifier = WinkClassifier()
 
-    let classifierForCategory = WinkClassifier()
+    const prepTask = function ( text: string ) {
+      const tokens: string[] = [];
+      nlp.readDoc(text)
+          .tokens()
+          // Use only words ignoring punctuations etc and from them remove stop words
+          .filter( (t: any) => ( t.out(its.type) === 'word' && !t.out(its.stopWordFlag) ) )
+          // Handle negation and extract stem of the word
+          .each( (t: any) => tokens.push( (t.out(its.negationFlag)) ? '!' + t.out(its.stem) : t.out(its.stem) ) );
+      return tokens;
+    };
+    winkClassifier.definePrepTasks( [ prepTask ] );
+    winkClassifier.defineConfig( { considerOnlyPresence: true, smoothingFactor: 0.5 } );
+    winkClassifier.importJSON(classifierEntry.model)
     try {
-      classifierForCategory.importJSON(classifierEntry?.model);
+      winkClassifier.consolidate()
+      const prediction = winkClassifier.computeOdds(post?.mlText)
+      const docCount = Object.values(winkClassifier.stats().labelWiseSamples).reduce((val, runningTotal: any) => val as number + runningTotal)
+      const postWithPrediction = {
+        ...post,
+        ...{
+          'prediction': prediction,
+          'docCount': docCount
+        }
+      }
+      return postWithPrediction
     } catch (error) {
-      return {
-        ...post,
-        ...{
-          'prediction': [
-            [ 'promote', .5 ],
-            [ 'suppress', .5 ]
-          ],
-          'docCount': Object.values(classifierForCategory.stats().labelWiseSamples).length
-        }
-      }
-    }
-    classifierForCategory.definePrepTasks( [ prepTask ] );
-    classifierForCategory.defineConfig( { considerOnlyPresence: true, smoothingFactor: 0.5 } );
-    if (Object.values(classifierForCategory.stats().labelWiseSamples).length < 2) {
-      return {
-        ...post,
-        ...{
-          'prediction': [
-            [ 'promote', .5 ],
-            [ 'suppress', .5 ]
-          ],
-          'docCount': Object.values(classifierForCategory.stats().labelWiseSamples).length
-        }
-      }
-    }
-    classifierForCategory.consolidate()
-    const prediction = classifierForCategory.computeOdds(post?.mlText)
-    const docCount = Object.values(classifierForCategory.stats().labelWiseSamples).reduce((val, runningTotal: any) => val as number + runningTotal)
-    return {
-      ...post,
-      ...{
-        'prediction': prediction,
-        'docCount': docCount
+      if (error != null) {
+        return post
       }
     }
   }
@@ -351,13 +353,10 @@ const App: Component = () => {
     feedsForCategory.forEach((feed: Feed) => {
       fetchQueue.push(new Promise((resolve) => {
         try {
-          corsProxies.slice().forEach((corsProxy) => {
+          corsProxies?.slice().forEach((corsProxy) => {
             axios.get(`${corsProxy.id}${feed.id}`)
             .then(response => {
               resolve(response)
-            })
-            .catch(error => {
-              console.log(error)
             })
           })
         } catch (error) {
