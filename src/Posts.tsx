@@ -36,6 +36,7 @@ export const shortUrl = (text: string) => {
 
 const Posts = (props: any) => {
   const [classifier, setClassifier] = createSignal(Classifier());
+  const [classifierJSON, setClassifierJSON] = createSignal('')
   const [processedPostsForSession, setProcessedPostsForSession] = createSignal([])
   createEffect(() => {
     const classifierEntry = [props.classifiers].flat().find((classifierEntry: any) => classifierEntry?.id == props.category)
@@ -47,7 +48,12 @@ const Posts = (props: any) => {
     }
     setClassifier(classifierForCategory)
   })
-  createEffect(() => {/*runonce*/
+  createEffect(() => {
+    const classifierJSON = classifier().exportJSON()
+    setClassifierJSON(classifierJSON)
+  })
+
+  createEffect(() => {
     try {
       if (`${useParams().category}` === 'undefined') {
         props.setSelectedCategory('')
@@ -83,14 +89,7 @@ const Posts = (props: any) => {
           }
           return processedPostsForFeedLink.indexOf(theMlText) == -1
         })
-        // .map((post: any) => {
-        //   try {
-        //     const prediction = classifier().getClassifications(post.mlText)
-        //     return {...post, ...{'prediction': prediction}}
-        //   } catch (error) {
-        //     console.log(error)
-        //   }
-        // })
+        .map((post: any) => props.applyPrediction(post, props.category))
         } fallback={<div class='fade-in-slow'>LOADING</div>}
       >
         {(post) => {
@@ -106,7 +105,8 @@ const Posts = (props: any) => {
                       <Collapsible.Trigger class="collapsible__trigger">
                         <PostTrain
                           category={props.category}
-                          classifier={classifier}
+                          classifierJSON={classifierJSON()}
+                          setClassifier={setClassifier}
                           mlText={post?.mlText}
                           prediction={post.prediction}
                           postId={`${post.feedLink}` === '' ? post.guid : shortUrl(post.feedLink)}

@@ -1,3 +1,4 @@
+import Classifier from 'wink-naive-bayes-text-classifier';
 import PostTrain from './PostTrain'
 import Heading from './Heading'
 import { NostrKey } from './db-fixture'
@@ -13,12 +14,23 @@ import {
 import { Collapsible, Link } from "@kobalte/core";
 
 const NostrPosts = (props: any) => {
+  const [classifierJSON, setClassifierJSON] = createSignal('')
   const [classifier, setClassifier] = createSignal();
   const [processedPostsForSession, setProcessedPostsForSession] = createSignal([])
 
   createEffect(() => {
-    const classifierEntry = [props.classifiers].flat().find((classifierEntry) => classifierEntry.id == 'nostr')
-    setClassifier(classifierEntry?.model)
+    const classifierEntry = [props.classifiers].flat().find((classifierEntry: any) => classifierEntry?.id == props.category)
+    let classifierForCategory = Classifier()
+    if (classifierEntry?.model != null) {
+      console.log(classifierEntry.model)
+      classifierForCategory.importJSON(classifierEntry.model)
+      // classifierForCategory = natural.BayesClassifier.restore(JSON.parse(classifierEntry?.model));
+    }
+    setClassifier(classifierForCategory)
+  })
+  createEffect(() => {
+    const classifierJSON = classifier().exportJSON()
+    setClassifierJSON(classifierJSON)
   })
 
   const handleKeyClick = (publicKey: string) => {
@@ -110,16 +122,7 @@ const NostrPosts = (props: any) => {
             }
             return processedPostsForNostr.indexOf(postItem.mlText) == -1
           })
-          // .map((post: any) => {
-          //   const prediction = classifier().computeOdds(post.mlText)
-          //   const docCount = Object.values(classifier().stats().labelWiseSamples).reduce((val, runningTotal: any) => val as number + runningTotal)
-          //   return {
-          //     ...post,
-          //     ...{
-          //       'prediction': prediction,
-          //       'docCount': docCount
-          //     }}
-          // })
+          .map((post: any) => props.applyPrediction(post, props.category))
           } fallback={<>Loading</>}>
           {(post) => {
             return (
@@ -146,7 +149,7 @@ const NostrPosts = (props: any) => {
                         <Collapsible.Trigger class="collapsible__trigger">
                         <PostTrain
                           category={() => 'nostr'}
-                          classifier={classifier()}
+                          classifierJSON={classifierJSON()}
                           mlText={post.mlText}
                           prediction={post.prediction}
                           docCount={post.docCount}
@@ -155,6 +158,7 @@ const NostrPosts = (props: any) => {
                           putClassifier={props.putClassifier}
                           setProcessedPostsForSession={setProcessedPostsForSession}
                           processedPostsForSession={processedPostsForSession()}
+                          setClassifier={setClassifier}
                         />
                       </Collapsible.Trigger>
               </>}

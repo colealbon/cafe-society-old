@@ -23,8 +23,13 @@ const PostTrain = (props: any) => {
     };
     winkClassifier.definePrepTasks( [ prepTask ] );
     winkClassifier.defineConfig( { considerOnlyPresence: true, smoothingFactor: 0.5 } );
-    if (props.classifier != null) {
-      winkClassifier.importJSON(props.classifier)
+    try {
+      if (`${props.classifierJSON}` != '')  {
+        winkClassifier.importJSON(props.classifierJSON)
+      }
+    } catch (error) {
+      console.log(error)
+      console.log(props.classifierJSON)
     }
     const nlp = winkNLP( model );
     const its = nlp.its;
@@ -34,6 +39,7 @@ const PostTrain = (props: any) => {
         id: props.category(),
         model: winkClassifier.exportJSON()
         }
+    props.setClassifier(winkClassifier)
     props.putClassifier(classifierEntry)
   }
 
@@ -58,20 +64,20 @@ const PostTrain = (props: any) => {
     props.setProcessedPostsForSession(Array.from(new Set([...props.processedPostsForSession, ...[`${props.mlText}`]])))
   }
 
-  const denominator = props.prediction?.reduce((accumulator: number, currentValue: number) => {
-  return accumulator + currentValue[1]
-  }, 100.0)
+  // const denominator = props.prediction?.reduce((accumulator: number, currentValue: number) => {
+  // return accumulator + currentValue[1]
+  // }, 100.0)
 
   let promoteNumerator = 0.0
   let suppressNumerator = 0.0
 
-  if (!props.prediction.find((predictionEntry) => predictionEntry[0] == 'unknown')) {
+  if (!props.prediction?.find((predictionEntry) => predictionEntry[0] == 'unknown')) {
     promoteNumerator = 0.0 + props.prediction?.find((predictionEntry) => predictionEntry[0] == 'promote')[1]
     suppressNumerator = 0.0 + props.prediction?.find((predictionEntry) => predictionEntry[0]  == 'suppress')[1]
   }
   return(
     <div style={{"display": "flex", "flex-direction": 'row', 'justify-content':'space-around', 'width': '300px'}}>
-    <div>{Math.round((suppressNumerator / denominator) * 100)?.toString().replace('NaN',' - ')}%</div>
+    <div>{suppressNumerator.toFixed(2)}</div>
     <AiOutlineArrowDown class="collapsible__trigger-icon button" onclick={() => setTimeout(() => {
         handleComplete()
         handleTrain('suppress')
@@ -94,7 +100,7 @@ const PostTrain = (props: any) => {
             handleTrain('promote')
           }, 300)
       }/>
-      <div>{Math.round((promoteNumerator / denominator) * 100)?.toString().replace('NaN',' - ')}%</div>
+      <div>{promoteNumerator.toFixed(2)}</div>
       <div/>
       <div/>
     </div>

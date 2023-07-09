@@ -134,7 +134,6 @@ const parseRSS = (content:any) => {
     })
   )
 }
-
 const parseAtom = (content: any) => {
   const feedTitle = content.feed?.feedTitle
   const feedLink = content.feed?.id
@@ -163,7 +162,6 @@ const parseAtom = (content: any) => {
     })
   )
 }
-
 const parsePosts = (postsXML: any[]) => {
   const parseQueue: any[] = []
   postsXML.forEach(xmlEntry => {
@@ -271,37 +269,29 @@ const App: Component = () => {
 
   const applyPrediction = (post: any, category: string) => {
     const classifierEntry = classifiers.find((classifierEntry) => classifierEntry?.id == category)
-    if (classifierEntry?.model == null) {
-      const postWithPrediction = {
-        ...post,
-        ...{
-          'prediction': [
-            [ 'promote', .5 ],
-            [ 'suppress', .5 ]
-          ]
-        }
-      }
-      return postWithPrediction
+    if (classifierEntry == undefined || `${classifierEntry?.model}` == '') {
+      return post
     }
     let winkClassifier = WinkClassifier()
-
     const prepTask = function ( text: string ) {
       const tokens: string[] = [];
       nlp.readDoc(text)
-          .tokens()
-          // Use only words ignoring punctuations etc and from them remove stop words
-          .filter( (t: any) => ( t.out(its.type) === 'word' && !t.out(its.stopWordFlag) ) )
-          // Handle negation and extract stem of the word
-          .each( (t: any) => tokens.push( (t.out(its.negationFlag)) ? '!' + t.out(its.stem) : t.out(its.stem) ) );
+        .tokens()
+        // Use only words ignoring punctuations etc and from them remove stop words
+        .filter( (t: any) => ( t.out(its.type) === 'word' && !t.out(its.stopWordFlag) ) )
+        // Handle negation and extract stem of the word
+        .each( (t: any) => tokens.push( (t.out(its.negationFlag)) ? '!' + t.out(its.stem) : t.out(its.stem) ) );
       return tokens;
     };
     winkClassifier.definePrepTasks( [ prepTask ] );
     winkClassifier.defineConfig( { considerOnlyPresence: true, smoothingFactor: 0.5 } );
     winkClassifier.importJSON(classifierEntry.model)
     try {
-      winkClassifier.consolidate()
-      const prediction = winkClassifier.computeOdds(post?.mlText)
       const docCount = Object.values(winkClassifier.stats().labelWiseSamples).reduce((val, runningTotal: any) => val as number + runningTotal)
+      if (docCount > 2) {
+        winkClassifier.consolidate()
+      }
+      const prediction = winkClassifier.computeOdds(post?.mlText)
       const postWithPrediction = {
         ...post,
         ...{
@@ -390,16 +380,7 @@ const App: Component = () => {
         }
         return processedPostsForFeedLink.indexOf(postItem?.mlText) == -1
       })
-      // .map((post: any) => {
-      //   try {
-      //     const prediction = .getClassifications(post.mlText)
-      //     return {...post, ...{'prediction': prediction}}
-      //   } catch (error) {
-      //     console.log(error)
-      //   }
-      // })
       .map((post) => applyPrediction(post, selectedCategory()))
-
       setPosts(cleanPosts)
     })
   })
@@ -416,6 +397,9 @@ const App: Component = () => {
       kinds: [ eventKind.text ]
     }
 
+    if ([...checkedNostrRelays].length < 1 ) {
+      return
+    }
     fetcher.fetchLatestEvents(
       [...checkedNostrRelays.map((nostrRelay) => nostrRelay['id'])],
       filterOptions,
@@ -425,7 +409,6 @@ const App: Component = () => {
       .filter(nostrPost => !ignoreNostrKeys.find(ignoreKey => ignoreKey.publicKey == nostrPost.pubkey))
       .map(nostrPost => cleanNostrPost(nostrPost))
       .map(post => applyPrediction(post, 'nostr'))
-
       setNostrPosts(cleanedNostrPosts)
     })
   })
@@ -546,6 +529,7 @@ const App: Component = () => {
               putProcessedPost={putProcessedPost}
               putNostrKey={putNostrKey}
               category={selectedCategory()}
+              applyPrediction={applyPrediction}
             />
           </Main>
         } path='/nostrposts'
@@ -575,6 +559,7 @@ const App: Component = () => {
                 putClassifier={putClassifier}
                 processedPosts={processedPosts}
                 putProcessedPost={putProcessedPost}
+                applyPrediction={applyPrediction}
                />
             </Suspense>
             </Main>
