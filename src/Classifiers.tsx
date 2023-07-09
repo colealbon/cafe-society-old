@@ -140,7 +140,7 @@ const Classifiers = (props: {
           <VsCopy />
         </Link.Root>
       </div>
-    <pre>{group.controls.model.rawValue}</pre>
+    <pre>{JSON.stringify(JSON.parse(group.controls.model.rawValue), null, 2)}</pre>
     </>}
     </p>
     </Collapsible.Content>
