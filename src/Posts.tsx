@@ -49,7 +49,6 @@ const Posts = (props: any) => {
     if (classifierEntry?.model != null) {
       console.log(classifierEntry.model)
       classifierForCategory.importJSON(classifierEntry.model)
-      // classifierForCategory = natural.BayesClassifier.restore(JSON.parse(classifierEntry?.model));
     }
     setClassifier(classifierForCategory)
   })
@@ -72,10 +71,6 @@ const Posts = (props: any) => {
   })
 
     const applyPrediction = (post: any, classifierJSON: string) => {
-    //const classifierEntry = classifiers.find((classifierEntry) => classifierEntry?.id == category)
-    // if (classifierEntry == undefined || `${classifierEntry?.model}` == '') {
-    //   return post
-    // }
     let winkClassifier = WinkClassifier()
     const prepTask = function ( text: string ) {
       const tokens: string[] = [];
