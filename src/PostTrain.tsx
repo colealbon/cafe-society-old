@@ -77,7 +77,7 @@ const PostTrain = (props: any) => {
   }
   return(
     <div style={{"display": "flex", "flex-direction": 'row', 'justify-content':'space-around', 'width': '300px'}}>
-    <div>{suppressNumerator.toFixed(2)}</div>
+    <div>{suppressNumerator.toFixed(2).replace('NaN', '-')}</div>
     <AiOutlineArrowDown class="collapsible__trigger-icon button" onclick={() => setTimeout(() => {
         handleComplete()
         handleTrain('suppress')
@@ -100,7 +100,7 @@ const PostTrain = (props: any) => {
             handleTrain('promote')
           }, 300)
       }/>
-      <div>{promoteNumerator.toFixed(2)}</div>
+      <div>{promoteNumerator.toFixed(2).replace('NaN', '-')}</div>
       <div/>
       <div/>
     </div>
