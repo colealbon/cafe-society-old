@@ -129,6 +129,7 @@ const parseRSS = (content:any) => {
       postId: itemEntry.link || itemEntry.guid,
       postTitle: itemEntry.title,
       mlText: prepTask(convert(`${itemEntry.title} ${itemEntry.postSummary}`))
+        .filter((word) => word.length < 30)
         .join(' ')
         .toLowerCase()
     })
@@ -157,6 +158,7 @@ const parseAtom = (content: any) => {
       postId: itemEntry?.id,
       postTitle: `${itemEntry.title}`,
       mlText: prepTask(convert(`${itemEntry.title} ${itemEntry.postSummary}`))
+        .filter((word) => word.length < 30)
         .join(' ')
         .toLowerCase()
     })
@@ -261,6 +263,7 @@ const App: Component = () => {
             linkBrackets: false
           }
         ))
+        .filter((word) => word.length < 30)
         .join(' ')
         .toLowerCase() || '',
       ...post

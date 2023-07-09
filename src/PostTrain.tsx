@@ -89,7 +89,7 @@ const PostTrain = (props: any) => {
       </Tooltip.Trigger>
       <Tooltip.Portal>
         <Tooltip.Content class="tooltip__content">
-          {`ML document count: ${props.docCount}`}
+          {props.docCount ? `ML document count: ${props.docCount}` : 'more training required for predictions'}
         </Tooltip.Content>
       </Tooltip.Portal>
     </Tooltip.Root>
