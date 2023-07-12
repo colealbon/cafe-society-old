@@ -1,17 +1,21 @@
-
 import {
-  For
-  ,createSignal
-  ,createEffect
-} from "solid-js"
-import { Link } from "@kobalte/core";
+  For,
+  Accessor
+} from 'solid-js';
+import {
+  Link
+} from "@kobalte/core";
+import {
+  Category
+} from "./db-fixture";
 
-const NavBar = (props: any) => {
-  const [selectedCategory, setSelectedCategory] = createSignal<string>('')
-  createEffect(() => {
-    const category = selectedCategory()
-    props.setSelectedCategory(category)
-  })
+const NavBar = (props: {
+  navBarWidth: number;
+  isOpen: Accessor<boolean>;
+  setClose: any;
+  setSelectedTrainLabel: any;
+  categories: Category[];
+}) => {
   return (
   <>
     <div
@@ -21,17 +25,18 @@ const NavBar = (props: any) => {
         width: `${props.isOpen() === true ? props.navBarWidth : 0}px`
       }}
     >
-      <Link.Root onClick={props.handleClose}>
+      <Link.Root style={{color:'white'}} onClick={props.setClose}>
       ⭠
       </Link.Root>
       <div />
-      <Link.Root href="/posts" onClick={props.setSelectedCategory('')}>Posts</Link.Root>
+      <Link.Root href="/posts" onClick={props.setSelectedTrainLabel('')}
+      >Posts</Link.Root>
       <div style={{margin: "10px"}}>
           <For each={props.categories}>
             {
               (category) => (
                   <Link.Root
-                  onClick={() => setSelectedCategory(`${category.id}`)}
+                  onClick={props.setSelectedTrainLabel(`${category.id}`)}
                   href={`/posts/${category.id}`}
               >
               {`${category.id}`}
@@ -40,7 +45,7 @@ const NavBar = (props: any) => {
             }
           </For>
           <Link.Root
-            onClick={props.setSelectedCategory('nostr')}
+            onClick={props.setSelectedTrainLabel('nostr')}
             href="/nostrposts">nostr</Link.Root
           >
       </div>

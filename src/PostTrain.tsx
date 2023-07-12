@@ -1,6 +1,3 @@
-import WinkClassifier from 'wink-naive-bayes-text-classifier';
-import winkNLP from 'wink-nlp'
-import model from 'wink-eng-lite-web-model'
 import { Link } from "@kobalte/core";
 import { Tooltip } from "@kobalte/core";
 import {
@@ -9,39 +6,6 @@ import {
 } from 'solid-icons/ai'
 
 const PostTrain = (props: any) => {
-  const handleTrain = (mlClass: string) => {
-    let winkClassifier = WinkClassifier()
-    const prepTask = function ( text: string ) {
-      const tokens: string[] = [];
-      nlp.readDoc(text)
-          .tokens()
-          // Use only words ignoring punctuations etc and from them remove stop words
-          .filter( (t: any) => ( t.out(its.type) === 'word' && !t.out(its.stopWordFlag) ) )
-          // Handle negation and extract stem of the word
-          .each( (t: any) => tokens.push( (t.out(its.negationFlag)) ? '!' + t.out(its.stem) : t.out(its.stem) ) );
-      return tokens;
-    };
-    winkClassifier.definePrepTasks( [ prepTask ] );
-    winkClassifier.defineConfig( { considerOnlyPresence: true, smoothingFactor: 0.5 } );
-    try {
-      if (`${props.classifierJSON}` != '')  {
-        winkClassifier.importJSON(props.classifierJSON)
-      }
-    } catch (error) {
-      console.log(error)
-      console.log(props.classifierJSON)
-    }
-    const nlp = winkNLP( model );
-    const its = nlp.its;
-
-    winkClassifier.learn(props.mlText, mlClass)
-    const classifierEntry = {
-        id: props.category(),
-        model: winkClassifier.exportJSON()
-        }
-    props.setClassifier(winkClassifier)
-    props.putClassifier(classifierEntry)
-  }
 
   const handleComplete = () => {
     const theProcessedPostsID = props.postId
@@ -62,6 +26,10 @@ const PostTrain = (props: any) => {
       props.putProcessedPost(newEntry)
     }
     props.setProcessedPostsForSession(Array.from(new Set([...props.processedPostsForSession, ...[`${props.mlText}`]])))
+  }
+
+  const handleTrain = (mlClass: string) => {
+    props.train(mlClass)
   }
 
   // const denominator = props.prediction?.reduce((accumulator: number, currentValue: number) => {
