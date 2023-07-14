@@ -52,6 +52,9 @@ dependencies:
   unocss:
     specifier: ^0.51.13
     version: 0.51.13(postcss@8.4.24)(vite@4.3.9)
+  unocss-preset-primitives:
+    specifier: 0.0.1-beta.9
+    version: 0.0.1-beta.9
   util:
     specifier: ^0.12.5
     version: 0.12.5
@@ -2816,6 +2819,10 @@ packages:
 
   /@unocss/core@0.51.13:
     resolution: {integrity: sha512-SclWkqY2c+p5+PiqrbQkhJNEExPdeo71/aGFye10tpBkgPJWd5xC7dhg5F8M4VPNBtuNCrvBWyqNnunMyuz/WQ==}
+
+  /@unocss/core@0.53.5:
+    resolution: {integrity: sha512-jBvk4FeUAALAomGfMFFmrXLy01/5DjugdnWgawFAQpSToFTxbMHS7x+pXKu/18cq+YLS8uyl9S0Ywy1jNbfS3Q==}
+    dev: false
 
   /@unocss/extractor-arbitrary-variants@0.51.13:
     resolution: {integrity: sha512-lF7p0ea/MeNf4IsjzNhRNYP8u+f1h5JjhTzcvFpQo/vpBvuM5ZCyqp4mkXxYnLNLFfTLsc+MxXaU34IXxpw1QA==}
@@ -9697,6 +9704,12 @@ packages:
     engines: {node: '>=0.10.0'}
     dependencies:
       normalize-path: 2.1.1
+    dev: false
+
+  /unocss-preset-primitives@0.0.1-beta.9:
+    resolution: {integrity: sha512-8ovfOQfgqkLuYWiS94pnVX1FdmfyloRSoPYlxenYWBTURTMdMO20g15VXDmteyYJ4PgBR1ShD1DT0WP24uKBeQ==}
+    dependencies:
+      '@unocss/core': 0.53.5
     dev: false
 
   /unocss@0.51.13(postcss@8.4.24)(vite@4.3.9):

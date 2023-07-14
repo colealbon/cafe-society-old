@@ -21,17 +21,17 @@ import { BiSolidSortAlt as CaretSortIcon } from 'solid-icons/bi'
 import { FaSolidCheck  as CheckIcon} from 'solid-icons/fa'
 import { ImCross as CrossIcon } from 'solid-icons/im'
 import { VsAdd, VsTrash } from 'solid-icons/vs'
-import { Feed , Category} from './db-fixture'
+import { Feed , TrainLabel} from './db-fixture'
 import Heading from './Heading'
 const Feeds = (props: {
     feeds: Feed[],
-    categories: Category[]
+    categories: TrainLabel[]
     // eslint-disable-next-line no-unused-vars
     putFeed: (feed: Feed) => void,
     // eslint-disable-next-line no-unused-vars
     removeFeed: (feed: Feed) => void
   }) => {
-  const [categoryValues, setCategoryValues] = createSignal([]);
+  const [trainLabelValues, setTrainLabelValues] = createSignal([]);
   const filter = createFilter({ sensitivity: "base" });
   const [options, setOptions] = createSignal<string[]>();
   const [ newFeed , setNewFeed ] = createSignal({});
@@ -70,11 +70,11 @@ const Feeds = (props: {
         ...{
           id: '',
           checked: true,
-          categories: []
+          labels: []
         },
         ...newFeed
       }
-      newFeedObj.categories = categoryValues()
+      newFeedObj.trainLabel = trainLabelValues()
       props.putFeed(newFeedObj)
     })
     group.setValue({
@@ -82,7 +82,7 @@ const Feeds = (props: {
       checked:true,
       categories: []
     })
-    setCategoryValues([])
+    setTrainLabelValues([])
   };
 
   const handleToggleChecked = (id: string) => {
@@ -114,7 +114,7 @@ const Feeds = (props: {
         id:'',
         checked:true
       }, valuesForSelectedFeed))
-    setCategoryValues(valuesForSelectedFeed?.categories)
+    setTrainLabelValues(valuesForSelectedFeed?.categories)
   }
 
   return (
@@ -127,8 +127,8 @@ const Feeds = (props: {
       <Combobox.Root<string>
         multiple
         options={props.categories.map(category => category.id)}
-        value={categoryValues()}
-        onChange={setCategoryValues}
+        value={trainLabelValues()}
+        onChange={setTrainLabelValues}
         onInputChange={onInputChange}
         onOpenChange={onOpenChange}
         placeholder="Search some fruits…"
@@ -191,7 +191,7 @@ const Feeds = (props: {
           </Combobox.Content>
         </Combobox.Portal>
       </Combobox.Root>
-      <p>feed categories: {categoryValues().join(", ")}.</p>
+      <p>feed categories: {trainLabelValues().join(", ")}.</p>
       <Separator.Root />
       <strong style={{'font-size': 'large'}}>feeds:</strong>
       <For each={props.feeds}>

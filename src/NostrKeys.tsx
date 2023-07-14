@@ -40,7 +40,7 @@ const NostrKeys = (props: {
     ignore: createFormControl(false)
   });
 
-  const onSubmit = async (event) => {
+  const onSubmit = async (event: any) => {
     event.preventDefault()
     if (group.isSubmitted) {
       console.log('already submitted')

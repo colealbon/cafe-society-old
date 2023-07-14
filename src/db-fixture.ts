@@ -19,7 +19,7 @@ export interface Classifier {
 export interface Feed {
     "id": string,
     "checked": boolean,
-    "categories": string[]
+    "trainLabels": string[]
 }
 
 export interface CorsProxy {
@@ -30,7 +30,7 @@ export interface NostrRelay {
   "id": string,
   "checked": boolean
 }
-export interface Category {
+export interface TrainLabel {
   "id": string,
   "checked": boolean
 }
@@ -44,19 +44,17 @@ export class DbFixture extends Dexie {
   nostrkeys!: Table<NostrKey>;
   feeds!: Table<Feed>;
   corsproxies!: Table<CorsProxy>;
-  categories!: Table<Category>;
+  trainLabels!: Table<TrainLabel>;
   classifiers!: Table<Classifier>;
   processedposts!: Table<ProcessedPost>;
   nostrrelays!: Table<NostrRelay>;
-
-
   constructor() {
     super("db-fixture");
     this.version(1).stores({
       nostrkeys: "&publicKey",
-      feeds: "&id, checked, *categories",
+      feeds: "&id, checked, *trainLabels",
       corsproxies: "&id",
-      categories: "&id",
+      trainLabels: "&id",
       classifiers: "&id",
       processedposts: "&id",
       nostrrelays: "&id"

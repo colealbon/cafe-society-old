@@ -2,7 +2,9 @@ import {
   For
 } from 'solid-js';
 
-import { Link } from "@kobalte/core";
+import {
+  Button
+} from "@kobalte/core";
 
 import Heading from './Heading'
 
@@ -32,7 +34,7 @@ const NostrRelays = (props: {
     checked: createFormControl(true)
   });
 
-  const onSubmit = async (event) => {
+  const onSubmit = async (event: any) => {
     event.preventDefault()
     if (group.isSubmitted) {
       // console.log('already submitted')
@@ -62,35 +64,19 @@ const NostrRelays = (props: {
     })
   };
 
-  const handleKeyClick = (id: string) => {
-    const valuesForSelectedFeed = props.nostrRelays
-      .find(nostrRelayEdit => nostrRelayEdit['id'] === id)
-    group.setValue(Object.assign({
-        id:'',
-        checked:true
-      }, valuesForSelectedFeed))
-  }
-
   const handleToggleChecked = (id: string) => {
     const valuesForSelectedFeed = props.nostrRelays
     .find(nostrRelayEdit => nostrRelayEdit['id'] === id)
     const newValueObj = (Object.assign(
+      {id: ''},
       {
         ...valuesForSelectedFeed
       },
       {checked: !group.value.checked}
     ))
-
     group.setValue (newValueObj)
     props.putNostrRelay(newValueObj)
   }
-
-  // const handleEraseClick = () => {
-  //   group.setValue({
-  //       id:'',
-  //       checked:true
-  //     })
-  // }
 
   return (
     <div class='fade-in'>
@@ -99,63 +85,34 @@ const NostrRelays = (props: {
       </Heading>
 <div>
   <form onSubmit={onSubmit}>
+    <div />
     <label for="id">URL</label>
     <TextInput name="id" control={group.controls.id} />
     <div />
-    <Switch.Root
-      checked={group.value.checked}
-      name="checked"
-      onChange={() => {
-        handleToggleChecked(group.value.id)
-      }}
-    />
   </form>
 </div>
 <div>
   <h4 class="text-muted">NostrRelays</h4>
   <For each={props.nostrRelays}>
     {(nostrRelay) => (
-      <div style={{
-        'width': '100%',
-        'display': 'flex',
-        'flex-direction': 'row',
-        'justify-content': 'flex-start',
-        'font-size': '25px',
-      }}>
-      <div style={{
-        'padding': '8px 8px 8px 32px',
-        'text-decoration': 'none',
-        'font-size': '25px',
-        'color': '#818181',
-        'display': 'block',
-        'transition':'0.3s'
-      }}>
-        <Link.Root onClick={(event) => {
-            event.preventDefault()
+      <div style={{'display': 'flex', 'flex-direction': 'row'}}>
+        <Switch.Root
+          class="switch"
+          checked={nostrRelay.checked}
+          onChange={handleToggleChecked(`${nostrRelay.id}`)}
+        >
+          <Switch.Input class="switch__input" />
+          <Switch.Control class="switch__control">
+            <Switch.Thumb class="switch__thumb" />
+          </Switch.Control>
+          <Button.Root onClick={() => {
             props.removeNostrRelay(nostrRelay)
           }}>
             <VsTrash />
-          </Link.Root>
-      </div>
-      <div style={
-        {
-          'padding': '8px 8px 8px 32px',
-          'text-decoration': 'none',
-          'font-size': '25px',
-          'color': '#818181',
-          'display': 'block',
-          'transition':'0.3s'
-        }}>
-          <Link.Root
-            // eslint-disable-next-line solid/reactivity
-            onClick={() => {
-              event.preventDefault()
-              handleKeyClick(nostrRelay.id)
-            }}
-          >
-            {nostrRelay.id}
-          </Link.Root>
-        </div>
+          </Button.Root>
+          <Switch.Label>{`${nostrRelay.id}`}</Switch.Label>
+        </Switch.Root>
+
       </div>
     )}
   </For>

@@ -6,7 +6,7 @@ import {
   Link
 } from "@kobalte/core";
 import {
-  Category
+  TrainLabel
 } from "./db-fixture";
 
 const NavBar = (props: {
@@ -14,8 +14,14 @@ const NavBar = (props: {
   isOpen: Accessor<boolean>;
   setClose: any;
   setSelectedTrainLabel: any;
-  categories: Category[];
+  trainLabels: TrainLabel[];
 }) => {
+  const clickSetSelectedTrainLabel = () => {
+    // event.preventDefault()
+    // eslint-disable-next-line solid/reactivity
+    return (trainLabel: string) => props.setSelectedTrainLabel(trainLabel)
+  }
+
   return (
   <>
     <div
@@ -29,32 +35,34 @@ const NavBar = (props: {
       ⭠
       </Link.Root>
       <div />
-      <Link.Root href="/posts" onClick={props.setSelectedTrainLabel('')}
+      <Link.Root href="/posts" onClick={() => clickSetSelectedTrainLabel()('')}
       >Posts</Link.Root>
       <div style={{margin: "10px"}}>
-          <For each={props.categories}>
+          <For each={props.trainLabels}>
             {
               (category) => (
-                  <Link.Root
-                  onClick={props.setSelectedTrainLabel(`${category.id}`)}
+                <Link.Root
+                  onClick={() => clickSetSelectedTrainLabel()(category.id)}
                   href={`/posts/${category.id}`}
-              >
+                >
               {`${category.id}`}
               </Link.Root>
               )
             }
           </For>
           <Link.Root
-            onClick={props.setSelectedTrainLabel('nostr')}
-            href="/nostrposts">nostr</Link.Root
+            onClick={() => clickSetSelectedTrainLabel()('nostr')}
+            href="/nostrposts"
           >
+            nostr
+          </Link.Root>
       </div>
       <Link.Root href="/nostr">Nostr Keys</Link.Root>
       <Link.Root href="/feeds">Feeds</Link.Root>
       <Link.Root href="/contribute">Contribute</Link.Root>
       <Link.Root href="/cors">Cors Proxies</Link.Root>
       <Link.Root href="/nostrrelays">Nostr Relays</Link.Root>
-      <Link.Root href="/categories">Categories</Link.Root>
+      <Link.Root href="/labels">Train Labels</Link.Root>
       <Link.Root href="/classifiers">Classifiers</Link.Root>
     </div>
     </>

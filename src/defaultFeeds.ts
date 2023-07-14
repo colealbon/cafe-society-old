@@ -3,132 +3,132 @@ const defaultFeeds =
   {
   "id": "https://www.thelancet.com/rssfeed/lancet_current.xml",
     "checked": false,
-    "categories": ["medicine"]
+    "trainLabels": ["medicine"]
   },
   {
     "id": "https://www.web3daily.co/articles?format=rss",
     "checked": false,
-    "categories": ["bitcoin"]
+    "trainLabels": ["bitcoin"]
   },
   {
     "id": "https://newsghana.com.gh/feed",
     "checked": false,
-    "categories": ["science"]
+    "trainLabels": ["science"]
   },
   {
     "id": "https://whowhatwhy.org/feed/?partner-feed=66620",
     "checked": true,
-    "categories": ["politics"]
+    "trainLabels": ["politics"]
   },
   {
     "id": "http://rss.sciam.com/ScientificAmerican-Global",
     "checked": false,
-    "categories": ["science"]
+    "trainLabels": ["science"]
   },
   {
     "id": "https://cryptobriefing.com/feed/",
     "checked": true,
-    "categories": ["bitcoin"]
+    "trainLabels": ["bitcoin"]
   },
   {
     "id": "https://www.hindustantimes.com/feed",
     "checked": false,
-    "categories": ["world"]
+    "trainLabels": ["world"]
   },
   {
     "id": "https://www.sciencealert.com/feed",
     "checked": true,
-    "categories": ["science"]
+    "trainLabels": ["science"]
   },
   {
     "id": "https://www.aljazeera.com/xml/rss/all.xml",
     "checked": false,
-    "categories": ["world"]
+    "trainLabels": ["world"]
   },
   {
     "id": "https://gcaptain.com/feed/",
     "checked": false,
-    "categories": ["maritime"]
+    "trainLabels": ["maritime"]
   },
   {
     "id": "https://bitcoinops.org/feed.xml",
     "checked": false,
-    "categories": ["bitcoin"]
+    "trainLabels": ["bitcoin"]
   },
   {
     "id": "https://electrek.co/web-stories/feed/",
     "checked": false,
-    "categories": ["technology"]
+    "trainLabels": ["technology"]
   },
   {
     "id": "https://www.teslarati.com/feed/",
     "checked": false,
-    "categories": ["technology"]
+    "trainLabels": ["technology"]
   },
   {
     "id": "https://en.mercopress.com/rss/",
     "checked": false,
-    "categories": ["world"]
+    "trainLabels": ["world"]
   },
   {
     "id": "https://cointelegraph.com/rss",
     "checked": true,
-    "categories": ["bitcoin"]
+    "trainLabels": ["bitcoin"]
   },
   {
     "id": "https://www.coindesk.com/arc/outboundfeeds/rss/?outputType=xml",
     "checked": true,
-    "categories": ["bitcoin"]
+    "trainLabels": ["bitcoin"]
   },
   {
     "id": "https://sf.streetsblog.org/feed/",
     "checked": true,
-    "categories": ["local"]
+    "trainLabels": ["local"]
   },
   {
     "id": "https://www.statnews.com/feed",
     "checked": false,
-    "categories": ["technology"]
+    "trainLabels": ["technology"]
   },
   {
     "id": "https://rt.com/rss",
     "checked": true,
-    "categories": ["world"]
+    "trainLabels": ["world"]
   },
   {
     "id": "https://ft.com/?format=rss",
     "checked": true,
-    "categories": ["business"]
+    "trainLabels": ["business"]
   },
   {
     "id": "https://www.scmp.com/rss/5/feed",
     "checked": false,
-    "categories": ["world"]
+    "trainLabels": ["world"]
   },
   {
     "id": "https://oilprice.com/rss/main",
     "checked": false,
-    "categories": ["world"]
+    "trainLabels": ["world"]
   },
   {
     "id": "https://asiatimes.com/feed/",
     "checked": false,
-    "categories": ["world"]
+    "trainLabels": ["world"]
   },
   {
     "id": "https://www.france24.com/en/rss",
     "checked": false,
-    "categories": ["world"]
+    "trainLabels": ["world"]
   },
   {
     "id": "https://evilleeye.com/feed/",
     "checked": false,
-    "categories": ["local"]
+    "trainLabels": ["local"]
   },
   {
     "id": "https://www.reutersagency.com/feed/",
     "checked": false,
-    "categories": ["variety"]
+    "trainLabels": ["variety"]
   }
 ]
 export default defaultFeeds

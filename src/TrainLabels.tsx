@@ -18,13 +18,13 @@ import {
   VsAdd,
   VsTrash
 } from 'solid-icons/vs'
-import { Category } from './db-fixture'
-const Categories = (props: {
-  categories: Category[],
+import { TrainLabel } from './db-fixture'
+const TrainLabels = (props: {
+  trainLabels: TrainLabel[],
   // eslint-disable-next-line no-unused-vars
-  putCategory: (category: Category) => void,
+  putTrainLabel: (category: TrainLabel) => void,
   // eslint-disable-next-line no-unused-vars
-  removeCategory: (category: Category) => void
+  removeTrainLabel: (category: TrainLabel) => void
 }) => {
 
   const group = createFormGroup({
@@ -45,15 +45,15 @@ const Categories = (props: {
       }, group.value))
       .filter(([, value]) => `${value}` !== '')
     )]
-    .forEach(newCategory => {
-      const newCategoryObj: Category = {
+    .forEach(newTrainLabel => {
+      const newTrainLabelObj: TrainLabel = {
         ...{
           id: '',
           checked: true
         },
-        ...newCategory
+        ...newTrainLabel
       }
-      props.putCategory(newCategoryObj)
+      props.putTrainLabel(newTrainLabelObj)
     })
 
     group.setValue({
@@ -63,31 +63,31 @@ const Categories = (props: {
   };
 
   const handleKeyClick = (id: string) => {
-    const valuesForSelectedCategory = props.categories
+    const valuesForSelectedTrainLabel = props.trainLabels
       .find(categoryEdit => categoryEdit['id'] === id)
     group.setValue(Object.assign({
         id:'',
         checked:true
-      }, valuesForSelectedCategory))
+      }, valuesForSelectedTrainLabel))
   }
 
   const handleToggleChecked = (id: string) => {
 
-    const valuesForSelectedCategory = props.categories
+    const valuesForSelectedTrainLabel = props.trainLabels
     .find(categoryEdit => categoryEdit['id'] === id)
 
-    if (valuesForSelectedCategory?.id == undefined) {
+    if (valuesForSelectedTrainLabel?.id == undefined) {
       return
     }
 
     const newValueObj = {
-        ...valuesForSelectedCategory
+        ...valuesForSelectedTrainLabel
       ,
       checked: !group.value.checked
     }
 
     group.setValue(newValueObj)
-    props.putCategory(newValueObj)
+    props.putTrainLabel(newValueObj)
   }
 
   // const handleEraseClick = () => {
@@ -101,7 +101,7 @@ const Categories = (props: {
   <div class='fade-in'>
     <div>
       <Heading>
-        <div>{'Edit Categories'}</div>
+        <div>{'Edit TrainLabels'}</div>
       </Heading>
     </div>
     <form onSubmit={onSubmit}>
@@ -123,8 +123,8 @@ const Categories = (props: {
       </div>
     </form>
   <div>
-  <h4 class="text-muted">Categories</h4>
-  <For each={props.categories}>
+  <h4 class="text-muted">TrainLabels</h4>
+  <For each={props.trainLabels}>
     {(category) => (
       <div style={{
         'width': '100%',
@@ -144,7 +144,7 @@ const Categories = (props: {
           }}>
         <Link.Root onClick={(event) => {
             event.preventDefault()
-            props.removeCategory(category)
+            props.removeTrainLabel(category)
           }}>
             <VsTrash />
           </Link.Root>
@@ -177,4 +177,4 @@ const Categories = (props: {
   </div>
   )
 }
-export default Categories;
+export default TrainLabels;

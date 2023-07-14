@@ -1,66 +1,73 @@
+import { convert } from 'html-to-text'
 import {
-  Signal,
   createSignal,
-  createEffect
+  createEffect,
+  Signal,
+  createResource
 } from 'solid-js';
 import {
   Routes,
   Route
 } from '@solidjs/router';
 import Main from './Main';
-import NostrPosts from './NostrPosts'
+import NostrPosts from './NostrPosts';
 import NavBar from './NavBar';
 import { Link } from "@kobalte/core";
+import {
+  NostrFetcher
+  , eventKind
+} from "nostr-fetch";
+
+const fetcher = NostrFetcher.init();
 
 const navBarWidth = 250
 
-// import { convert } from 'html-to-text'
-// import WinkClassifier from 'wink-naive-bayes-text-classifier';
-// import winkNLP from 'wink-nlp'
-// import model from 'wink-eng-lite-web-model'
+import WinkClassifier from 'wink-naive-bayes-text-classifier';
+import winkNLP from 'wink-nlp'
+import model from 'wink-eng-lite-web-model'
 import {
   DbFixture,
-//   NostrRelay,
-//   Category,
-//   Feed,
-//   CorsProxy,
+  NostrRelay,
+  NostrKey,
+  TrainLabel,
+  Feed,
+  CorsProxy,
   Classifier,
-//   ProcessedPost
+  ProcessedPost
 } from "./db-fixture";
 // import axios from 'axios';
 // import { XMLParser } from 'fast-xml-parser'
 import { createDexieArrayQuery } from "solid-dexie";
 // import Posts from './Posts'
-// import NostrKeys from './NostrKeys';
+import NostrKeys from './NostrKeys';
 // import Feeds from './Feeds';
 // import CorsProxies from './CorsProxies';
-// import NostrRelays from './NostrRelays';
-// import Categories from './Categories';
+import NostrRelays from './NostrRelays';
+// import TrainLabels from './TrainLabels';
 // import Classifiers from './Classifiers';
 // import Heading from './Heading';
 // import Contribute from './Contribute';
-// import defaultNostrKeys from './defaultNostrKeys';
-// import defaultNostrRelays from './defaultNostrRelays';
-// import defaultFeeds from './defaultFeeds';
-// import defaultCorsProxies from './defaultCorsProxies';
-// import defaultCategories from './defaultCategories';
+import defaultNostrKeys from './defaultNostrKeys';
+import defaultNostrRelays from './defaultNostrRelays';
+import defaultFeeds from './defaultFeeds';
+import defaultCorsProxies from './defaultCorsProxies';
+import defaultTrainLabels from './defaultTrainLabels';
 import defaultClassifiers from './defaultClassifiers';
-// import defaultProcessed from './defaultProcessed';
-// import { NostrKey } from './db-fixture'
+import defaultProcessed from './defaultProcessed';
+
 const db = new DbFixture();
 // const parser = new XMLParser();
-
-// const nlp = winkNLP( model );
-// const its = nlp.its;
+const nlp = winkNLP( model );
+const its = nlp.its;
 
 db.on("populate", () => {
-  // db.nostrkeys.bulkAdd(defaultNostrKeys as NostrKey[]);
-  // db.nostrrelays.bulkAdd(defaultNostrRelays as NostrRelay[]);
-  // db.feeds.bulkAdd(defaultFeeds as Feed[]);
-  // db.corsproxies.bulkAdd(defaultCorsProxies as CorsProxy[]);
-  // db.categories.bulkAdd(defaultCategories as Category[]);
+  db.nostrkeys.bulkAdd(defaultNostrKeys as NostrKey[]);
+  db.nostrrelays.bulkAdd(defaultNostrRelays as NostrRelay[]);
+  db.feeds.bulkAdd(defaultFeeds as Feed[]);
+  db.corsproxies.bulkAdd(defaultCorsProxies as CorsProxy[]);
+  db.trainLabels.bulkAdd(defaultTrainLabels as TrainLabel[]);
   db.classifiers.bulkAdd(defaultClassifiers as Classifier[]);
-  // db.processedposts.bulkAdd(defaultProcessed as ProcessedPost[]);
+  db.processedposts.bulkAdd(defaultProcessed as ProcessedPost[]);
 });
 
 function createStoredSignal<T>(
@@ -79,18 +86,100 @@ function createStoredSignal<T>(
   }) as typeof setValue;
   return [value, setValueAndStore];
 }
-const [selectedTrainLabel, setSelectedTrainLabel] = createStoredSignal('selectedTrainLabel', '')
 
-// const prepTask = function ( text: string ) {
-//   const tokens: string[] = [];
-//   nlp.readDoc(text)
-//       .tokens()
-//       // Use only words ignoring punctuations etc and from them remove stop words
-//       .filter( (t: any) => ( t.out(its.type) === 'word' && !t.out(its.stopWordFlag) ) )
-//       // Handle negation and extract stem of the word
-//       .each( (t: any) => tokens.push( (t.out(its.negationFlag)) ? '!' + t.out(its.stem) : t.out(its.stem) ) );
-//   return tokens;
-// };
+const prepTask = function ( text: string ) {
+  const tokens: string[] = [];
+  nlp.readDoc(text)
+      .tokens()
+      // Use only words ignoring punctuations etc and from them remove stop words
+      .filter( (t: any) => ( t.out(its.type) === 'word' && !t.out(its.stopWordFlag) ) )
+      // Handle negation and extract stem of the word
+      .each( (t: any) => tokens.push( (t.out(its.negationFlag)) ? '!' + t.out(its.stem) : t.out(its.stem) ) );
+  return tokens;
+};
+
+const cleanNostrPost = (post: any) => {
+  return {
+    mlText: prepTask(convert(
+        `${post.content}`.replace(/\d+/g, ''),
+        {
+          ignoreLinks: true,
+          ignoreHref: true,
+          ignoreImage: true,
+          linkBrackets: false
+        }
+      ))
+      .filter((word: string) => word.length < 30)
+      .join(' ')
+      .toLowerCase() || '',
+    ...post
+  }
+}
+
+const applyPrediction = (params: {
+  post: any,
+  classifier: any
+}) => {
+  try {
+    const docCount: number = params.classifier.stats().labelWiseSamples ? Object.values(params.classifier.stats().labelWiseSamples).reduce((val, runningTotal: any) => val as number + runningTotal, 0) as number : 0
+    if (docCount > 2) {
+      params.classifier.consolidate()
+    }
+    const prediction = params.classifier.computeOdds(params.post?.mlText)
+    const postWithPrediction = {
+      ...params.post,
+      ...{
+        'prediction': prediction,
+        'docCount': docCount
+      }
+    }
+    return postWithPrediction
+  } catch (error) {
+    if (error != null) {
+      const newPost = params.post
+      newPost.prediction = params.classifier.stats()
+      return newPost
+    }
+  }
+}
+
+function fetchNostrPosts(params: string) {
+  return new Promise((resolve) => {
+    const paramsObj = JSON.parse(params)
+    const filterOptions = `${paramsObj.nostrAuthor}` != '' ?
+    {
+      kinds: [ eventKind.text ],
+      authors: [`${paramsObj.nostrAuthor}`],
+    } :
+    {
+      kinds: [ eventKind.text ]
+    }
+    const maxPosts = `${paramsObj.nostrAuthor}` == '' ? 10 : 10
+    const ignoreList = paramsObj.ignore
+    const winkClassifier = WinkClassifier()
+    winkClassifier.definePrepTasks( [ prepTask ] );
+    winkClassifier.defineConfig( { considerOnlyPresence: true, smoothingFactor: 0.5 } );
+    if (paramsObj.classifier != '') {
+      winkClassifier.importJSON(paramsObj.classifier)
+    }
+    fetcher.fetchLatestEvents(
+      [...paramsObj.nostrRelayList],
+      filterOptions,
+      maxPosts
+    )
+    .then((allThePosts: any) => {
+      resolve(
+        allThePosts
+        .filter((nostrPost: any) => !ignoreList.find((ignoreKey: {publicKey: string}) => ignoreKey.publicKey == nostrPost.pubkey))
+        .map((nostrPost: any) => cleanNostrPost(nostrPost))
+        .map((post: any) => applyPrediction({
+          post: post,
+          classifier: winkClassifier
+        }))
+      )
+    })
+  })
+}
 
 // const parseRSS = (content:any) => {
 //   const feedTitle = content.rss.channel.title
@@ -188,34 +277,54 @@ const [selectedTrainLabel, setSelectedTrainLabel] = createStoredSignal('selected
 // };
 
 const App = () => {
-  const [isOpen, setIsOpen] = createSignal(false)
-  const categories = createDexieArrayQuery(() => db.categories.toArray());
-//   const nostrKeys = createDexieArrayQuery(() => db.nostrkeys.toArray());
-//   const ignoreNostrKeys = createDexieArrayQuery(() => db.nostrkeys
-//   .filter(nostrKey => nostrKey.ignore === true)
-//   .toArray()
-//   );
-//   const putNostrKey = async (newKey: NostrKey) => {
-//     await db.nostrkeys.put(newKey)
-//   }
-//   const removeNostrKey = async (nostrKeyRemove: NostrKey) => {
-//     await db.nostrkeys.where('publicKey').equals(nostrKeyRemove.publicKey).delete()
-//   }
+  const [selectedTrainLabel, setSelectedTrainLabel] = createSignal('')
+  const [isOpen, setIsOpen] = createStoredSignal('isNavbarOpen', false);
+  const trainLabels = createDexieArrayQuery(() => db.trainLabels.toArray());
+  const nostrRelays = createDexieArrayQuery(() => db.nostrrelays.toArray());
+  const checkedNostrRelays = createDexieArrayQuery(() => db.nostrrelays
+    .filter(relay => relay.checked === true)
+    .toArray()
+    );
+  const [selectedNostrAuthor, setSelectedNostrAuthor] = createStoredSignal('selectedNostrAuthor', '')
+  const [nostrQuery, setNostrQuery] = createSignal('')
+  const ignoreNostrKeys = createDexieArrayQuery(() => db.nostrkeys
+  .filter(nostrKey => nostrKey.ignore === true)
+  .toArray()
+  );
 
-  const [selectedClassifier, setSelectedClassifier] = createSignal()
-  const [selectedMlText, setSelectedMlText] = createSignal()
-  const [selectedMlClass, setSelectedMlClass] = createSignal()
+  createEffect(() => {
+    const nostrRelayList = checkedNostrRelays
+      .map((relay: NostrRelay) => relay.id)
+    const nostrAuthor = selectedNostrAuthor()
+    const classifierEntry: string = classifiers.find((classifierEntry) => classifierEntry?.id == selectedTrainLabel())?.model || ''
+    const newQuery = JSON.stringify({
+      'nostrRelayList': nostrRelayList,
+      'nostrAuthor': nostrAuthor,
+      'ignore': ignoreNostrKeys,
+      'classifier': classifierEntry
+    })
+    setNostrQuery(newQuery)
+  })
 
+  const [nostrPosts] = createResource(nostrQuery, fetchNostrPosts);
+
+  const putNostrRelay = async (newNostrRelay: NostrRelay) => {
+    await db.nostrrelays.put(newNostrRelay)
+  };
+  const removeNostrRelay = async (nostrRelayToRemove: NostrRelay) => {
+    await db.nostrrelays.where('id').equals(nostrRelayToRemove?.id).delete()
+  };
+  const nostrKeys = createDexieArrayQuery(() => db.nostrkeys.toArray());
+  const putNostrKey = async (newKey: NostrKey) => {
+    await db.nostrkeys.put(newKey)
+  }
+  const removeNostrKey = async (nostrKeyRemove: NostrKey) => {
+    await db.nostrkeys.where('publicKey').equals(nostrKeyRemove.publicKey).delete()
+  }
+
+  // const [selectedClassifier, setSelectedClassifier] = createSignal()
   const classifiers = createDexieArrayQuery(() => db.classifiers.toArray());
-
-//   const putNostrRelay = async (newNostrRelay: NostrRelay) => {
-//     await db.nostrrelays.put(newNostrRelay)
-//   }
-//   const removeNostrRelay = async (nostrRelayToRemove: NostrRelay) => {
-//     await db.nostrrelays.where('id').equals(nostrRelayToRemove?.id).delete()
-//   }
-
-//   const feeds = createDexieArrayQuery(() => db.feeds.toArray());
+  // const feeds = createDexieArrayQuery(() => db.feeds.toArray());
 
 //   const checkedFeeds = createDexieArrayQuery(() => db.feeds
 //     .filter(feed => feed.checked === true)
@@ -238,89 +347,56 @@ const App = () => {
 //     await db.corsproxies.where('id').equals(corsProxyToRemove?.id).delete()
 //   }
 
-//   const processedPosts = createDexieArrayQuery(() => db.processedposts.toArray());
+  const processedPosts = createDexieArrayQuery(() => db.processedposts.toArray());
 
-//   const putProcessedPost = async (newProcessedPost: ProcessedPost) => {
-//     await db.processedposts.put(newProcessedPost)
+  const putProcessedPost = async (newProcessedPost: ProcessedPost) => {
+    await db.processedposts.put(newProcessedPost)
+  }
+
+//   const putTrainLabel = async (newTrainLabel: TrainLabel) => {
+//     await db.trainLabels.put(newTrainLabel)
 //   }
 
-//   const putCategory = async (newCategory: Category) => {
-//     await db.categories.put(newCategory)
+//   const removeTrainLabel = async (categoryToRemove: TrainLabel) => {
+//     await db.trainLabels.where('id').equals(categoryToRemove?.id).delete()
 //   }
 
-//   const removeCategory = async (categoryToRemove: Category) => {
-//     await db.categories.where('id').equals(categoryToRemove?.id).delete()
-//   }
-//   const cleanNostrPost = (post: any) => {
-//     return {
-//       mlText: prepTask(convert(
-//           `${post.content}`.replace(/\d+/g, ''),
-//           {
-//             ignoreLinks: true,
-//             ignoreHref: true,
-//             ignoreImage: true,
-//             linkBrackets: false
-//           }
-//         ))
-//         .filter((word) => word.length < 30)
-//         .join(' ')
-//         .toLowerCase() || '',
-//       ...post
-//     }
-//   }
+  // createEffect(() => {
+  //   // const classifierEntry: Classifier | undefined = classifiers.find((classifierEntry) => classifierEntry?.id == selectedTrainLabel())
+  //   setSelectedClassifier(
+  //     classifiers.find((classifierEntry) => classifierEntry?.id == selectedTrainLabel())?.model
+  //   )
+  // })
 
-  createEffect(() => {
-    // const classifierEntry: Classifier | undefined = classifiers.find((classifierEntry) => classifierEntry?.id == selectedTrainLabel())
-    setSelectedClassifier(
-      classifiers.find((classifierEntry) => classifierEntry?.id == selectedTrainLabel())?.model
-    )
-  })
+  // createEffect(() => {
+  //   if (selectedTrainLabel() === '') {
+  //     return
+  //   }
+  //   // console.log(selectedTrainLabel())
+  // })
+
+  // createEffect(() => {
+  //   if (selectedMlText() === '') {
+  //     return
+  //   }
+  //   console.log(selectedMlText())
+  //   console.log(selectedTrainLabel())
+  // })
+
+  // createEffect(() => {
+  //   if (selectedMlClass() === '') {
+  //     return
+  //   }
+  //   console.log(selectedMlClass())
+  //   console.log(selectedTrainLabel())
+  // })
 
 //   createEffect(() => {
-//     const classifierEntry: Classifier | undefined = classifiers.find((classifierEntry) => classifierEntry?.id == selectedTrainLabel())
-//     if (classifierEntry === undefined) {
-//       let winkClassifier = WinkClassifier()
-//       const prepTask = function ( text: string ) {
-//         const tokens: string[] = [];
-//         nlp.readDoc(text)
-//           .tokens()
-//           // Use only words ignoring punctuations etc and from them remove stop words
-//           .filter( (t: any) => ( t.out(its.type) === 'word' && !t.out(its.stopWordFlag) ) )
-//           // Handle negation and extract stem of the word
-//           .each( (t: any) => tokens.push( (t.out(its.negationFlag)) ? '!' + t.out(its.stem) : t.out(its.stem) ) );
-//         return tokens;
-//       };
-//       winkClassifier.definePrepTasks( [ prepTask ] );
-//       winkClassifier.defineConfig( { considerOnlyPresence: true, smoothingFactor: 0.5 } );
-//       const newClassifierEntry: string = winkClassifier.exportJSON()
 //       setSelectedClassifier(newClassifierEntry)
 //     } else {
 //       setSelectedClassifier(classifierEntry.model)
 //     }
 //   })
-
-//   const applyPrediction = (post: any, classifier: any) => {
-//     try {
-//       const docCount: number = Object.values(classifier.stats().labelWiseSamples).reduce((val, runningTotal: any) => val as number + runningTotal) as number
-//       if (docCount > 2) {
-//         classifier.consolidate()
-//       }
-//       const prediction = classifier.computeOdds(post?.mlText)
-//       const postWithPrediction = {
-//         ...post,
-//         ...{
-//           'prediction': prediction,
-//           'docCount': docCount
-//         }
-//       }
-//       return postWithPrediction
-//     } catch (error) {
-//       if (error != null) {
-//         return post
-//       }
-//     }
-//   }
-
 //   const putClassifier = async (newClassifierEntry: Classifier) => {
 //     if (newClassifierEntry.model === '') {
 //       return
@@ -347,17 +423,11 @@ const App = () => {
 //   //   selectedTrainLabel()
 //   // )
 
-//   const [selectedNostrAuthor, setSelectedNostrAuthor] = createStoredSignal('selectedNostrAuthor', '')
-//   const nostrRelays = createDexieArrayQuery(() => db.nostrrelays.toArray());
-//   const checkedNostrRelays = createDexieArrayQuery(() => db.nostrrelays
-//     .filter(feed => feed.checked === true)
-//     .toArray());
-
 //   createEffect(() => {
-//     const feedsForCategory = checkedFeeds
-//       .filter((feed) => selectedTrainLabel() === '' || feed.categories.indexOf(selectedTrainLabel()) !== -1)
+//     const feedsForTrainLabel = checkedFeeds
+//       .filter((feed) => selectedTrainLabel() === '' || feed.trainLabels.indexOf(selectedTrainLabel()) !== -1)
 //     const fetchQueue: any[] = []
-//     feedsForCategory.forEach((feed: Feed) => {
+//     feedsForTrainLabel.forEach((feed: Feed) => {
 //       fetchQueue.push(new Promise((resolve) => {
 //         try {
 //           corsProxies?.slice().forEach((corsProxy) => {
@@ -400,34 +470,6 @@ const App = () => {
 //     })
 //   })
 
-  createEffect(() => {
-    console.log(selectedClassifier())
-    console.log(selectedTrainLabel())
-    console.log(selectedMlText())
-    console.log(selectedMlClass())
-
-      // classifier.definePrepTasks( [ prepTask ] );
-      // classifier.defineConfig( { considerOnlyPresence: true, smoothingFactor: 0.5 } );
-      // try {
-      //   if (`${props.classifierJSON}` != '')  {
-      //     winkClassifier.importJSON(props.classifierJSON)
-      //   }
-      // } catch (error) {
-      //   console.log(error)
-      //   console.log(props.classifierJSON)
-      // }
-      // const nlp = winkNLP( model );
-      // const its = nlp.its;
-
-      // classifier.learn(mlText, mlClass)
-      // const classifierEntry = {
-      //   id: category,
-      //   model: classifier.exportJSON()
-      // } as Classifier
-      // console.log(classifier.stats())
-      // putClassifier(classifierEntry)
-  })
-
   return (
   <div>
     <div class='openbtn'>
@@ -446,25 +488,61 @@ const App = () => {
           setIsOpen(false)
         }}
         isOpen={isOpen}
-        categories={categories.filter(category => category.checked)}
-        setSelectedTrainLabel={(theLabel: string) => setSelectedTrainLabel(theLabel)}
+        trainLabels={trainLabels.filter(trainLabel => trainLabel.checked)}
+        setSelectedTrainLabel={setSelectedTrainLabel}
        />
-      <div>{selectedTrainLabel()}</div>
       <Routes>
         <Route element={
           <Main
             navBarWidth={navBarWidth}
             isOpen={isOpen}
           >
-            <NostrPosts
-              handleTrain={(params: {mlText: string, mlClass: string}) => {
-                setSelectedMlText(params.mlText)
-                setSelectedMlClass(params.mlClass)
-              }}
-              navBarWidth={navBarWidth}
-            />
+            <div>
+              <NostrPosts
+                selectedTrainLabel={selectedTrainLabel}
+                handleTrain={(params: {mlText: string, mlClass: string}) => {
+                  console.log(params)
+                  // setSelectedMlText(params.mlText)
+                  // setSelectedMlClass(params.mlClass)
+                }}
+                nostrPosts={nostrPosts}
+                navBarWidth={navBarWidth}
+                selectedNostrAuthor={selectedNostrAuthor}
+                setSelectedNostrAuthor={setSelectedNostrAuthor}
+                putNostrKey={putNostrKey}
+                processedPosts={processedPosts}
+                putProcessedPost={putProcessedPost}
+              />
+            </div>
           </Main>
         } path='/nostrposts'
+        />
+        <Route element={
+          <Main
+            navBarWidth={navBarWidth}
+            isOpen={isOpen}
+          >
+              <NostrRelays
+              nostrRelays={nostrRelays}
+              putNostrRelay={putNostrRelay}
+              removeNostrRelay={removeNostrRelay}
+             />
+            </Main>
+        } path='/nostrrelays'
+        />
+        <Route element={
+          <Main
+              navBarWidth={navBarWidth}
+              isOpen={isOpen}
+            >
+              <NostrKeys
+                nostrKeys={nostrKeys}
+                putNostrKey={putNostrKey}
+                removeNostrKey={removeNostrKey}
+              />
+          </Main>
+          }
+          path='/nostr'
         />
       </Routes>
     </div>
@@ -489,19 +567,7 @@ export default App;
     // putNostrKey={putNostrKey}
   /> */}
 
-//         <Route element={
-//             <Main
-//               navBarWidth={navBarWidth}
-//               isOpen={isOpen}
-//             >
-//               <NostrKeys
-//                 nostrKeys={nostrKeys}
-//                 putNostrKey={putNostrKey}
-//                 removeNostrKey={removeNostrKey}
-//               />
-//             </Main>
-//           } path='/nostr'
-//           />
+
 //         <Route element={<Main navBarWidth={navBarWidth} isOpen={isOpen}><div><Contribute /></div></Main>} path='/contribute' />
 //         <Route element={
 //           <Main
@@ -512,7 +578,7 @@ export default App;
 //               feeds={feeds}
 //               putFeed={putFeed}
 //               removeFeed={removeFeed}
-//               categories={categories}
+//               trainLabels={trainLabels}
 //             />
 //           </Main>
 //         } path='/feeds'
@@ -530,31 +596,19 @@ export default App;
 //             </Main>
 //         } path='/cors'
 //         />
+
 //         <Route element={
 //           <Main
 //             navBarWidth={navBarWidth}
 //             isOpen={isOpen}
 //           >
-//               <NostrRelays
-//               nostrRelays={nostrRelays}
-//               putNostrRelay={putNostrRelay}
-//               removeNostrRelay={removeNostrRelay}
-//              />
-//             </Main>
-//         } path='/nostrrelays'
-//         />
-//         <Route element={
-//           <Main
-//             navBarWidth={navBarWidth}
-//             isOpen={isOpen}
-//           >
-//             <Categories
-//               categories={categories}
-//               putCategory={putCategory}
-//               removeCategory={removeCategory}
+//             <TrainLabels
+//               trainLabels={trainLabels}
+//               putTrainLabel={putTrainLabel}
+//               removeTrainLabel={removeTrainLabel}
 //             />
 //           </Main>
-//         } path='/categories'
+//         } path='/trainLabels'
 //         />
 //         <Route element={
 //           <Main
