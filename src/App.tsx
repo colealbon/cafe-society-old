@@ -40,13 +40,13 @@ import {
 import { createDexieArrayQuery } from "solid-dexie";
 // import Posts from './Posts'
 import NostrKeys from './NostrKeys';
-// import Feeds from './Feeds';
-// import CorsProxies from './CorsProxies';
+import Feeds from './Feeds';
+import CorsProxies from './CorsProxies';
 import NostrRelays from './NostrRelays';
-// import TrainLabels from './TrainLabels';
-// import Classifiers from './Classifiers';
+import TrainLabels from './TrainLabels';
+import Classifiers from './Classifiers';
 // import Heading from './Heading';
-// import Contribute from './Contribute';
+import Contribute from './Contribute';
 import defaultNostrKeys from './defaultNostrKeys';
 import defaultNostrRelays from './defaultNostrRelays';
 import defaultFeeds from './defaultFeeds';
@@ -98,7 +98,7 @@ const prepTask = function ( text: string ) {
   return tokens;
 };
 
-const cleanNostrPost = (post: any) => {
+const prepNostrPost = (post: any) => {
   return {
     mlText: prepTask(convert(
         `${post.content}`.replace(/\d+/g, ''),
@@ -154,8 +154,9 @@ function fetchNostrPosts(params: string) {
     {
       kinds: [ eventKind.text ]
     }
-    const maxPosts = `${paramsObj.nostrAuthor}` == '' ? 10 : 10
-    const ignoreList = paramsObj.ignore
+    const maxPosts = `${paramsObj.nostrAuthor}` == '' ? 100 : 100
+    const ignoreAuthor = paramsObj.ignore
+    const processedPosts = [paramsObj.processedPosts].flat()
     const winkClassifier = WinkClassifier()
     winkClassifier.definePrepTasks( [ prepTask ] );
     winkClassifier.defineConfig( { considerOnlyPresence: true, smoothingFactor: 0.5 } );
@@ -170,8 +171,9 @@ function fetchNostrPosts(params: string) {
     .then((allThePosts: any) => {
       resolve(
         allThePosts
-        .filter((nostrPost: any) => !ignoreList.find((ignoreKey: {publicKey: string}) => ignoreKey.publicKey == nostrPost.pubkey))
-        .map((nostrPost: any) => cleanNostrPost(nostrPost))
+        .filter((nostrPost: any) => !ignoreAuthor.find((ignoreKey: {publicKey: string}) => ignoreKey.publicKey == nostrPost.pubkey))
+        .filter((nostrPost: any) => processedPosts.indexOf(nostrPost.id) == -1)
+        .map((nostrPost: any) => prepNostrPost(nostrPost))
         .map((post: any) => applyPrediction({
           post: post,
           classifier: winkClassifier
@@ -297,11 +299,13 @@ const App = () => {
       .map((relay: NostrRelay) => relay.id)
     const nostrAuthor = selectedNostrAuthor()
     const classifierEntry: string = classifiers.find((classifierEntry) => classifierEntry?.id == selectedTrainLabel())?.model || ''
+    const processedNostrPosts = processedPosts.find((processedPostsEntry) => processedPostsEntry?.id == 'nostr')?.processedPosts
     const newQuery = JSON.stringify({
       'nostrRelayList': nostrRelayList,
       'nostrAuthor': nostrAuthor,
       'ignore': ignoreNostrKeys,
-      'classifier': classifierEntry
+      'classifier': classifierEntry,
+      'processedPosts': processedNostrPosts
     })
     setNostrQuery(newQuery)
   })
@@ -322,30 +326,29 @@ const App = () => {
     await db.nostrkeys.where('publicKey').equals(nostrKeyRemove.publicKey).delete()
   }
 
-  // const [selectedClassifier, setSelectedClassifier] = createSignal()
   const classifiers = createDexieArrayQuery(() => db.classifiers.toArray());
-  // const feeds = createDexieArrayQuery(() => db.feeds.toArray());
+   const feeds = createDexieArrayQuery(() => db.feeds.toArray());
 
 //   const checkedFeeds = createDexieArrayQuery(() => db.feeds
 //     .filter(feed => feed.checked === true)
 //     .toArray());
 
-//   const putFeed = async (newFeed: Feed) => {
-//     await newFeed?.id && db.feeds.put(newFeed)
-//   }
+  const putFeed = async (newFeed: Feed) => {
+    await newFeed?.id && db.feeds.put(newFeed)
+  }
 
-//   const removeFeed = async (feedRemove: Feed) => {
-//     await db.feeds.where('id').equals(feedRemove?.id).delete()
-//   }
+  const removeFeed = async (feedRemove: Feed) => {
+    await db.feeds.where('id').equals(feedRemove?.id).delete()
+  }
 
-//   const corsProxies = createDexieArrayQuery(() => db.corsproxies.toArray());
+  const corsProxies = createDexieArrayQuery(() => db.corsproxies.toArray());
 
-//   const putCorsProxy = async (newCorsProxy: CorsProxy) => {
-//     await db.corsproxies.put(newCorsProxy)
-//   }
-//   const removeCorsProxy = async (corsProxyToRemove: CorsProxy) => {
-//     await db.corsproxies.where('id').equals(corsProxyToRemove?.id).delete()
-//   }
+  const putCorsProxy = async (newCorsProxy: CorsProxy) => {
+    await db.corsproxies.put(newCorsProxy)
+  }
+  const removeCorsProxy = async (corsProxyToRemove: CorsProxy) => {
+    await db.corsproxies.where('id').equals(corsProxyToRemove?.id).delete()
+  }
 
   const processedPosts = createDexieArrayQuery(() => db.processedposts.toArray());
 
@@ -353,13 +356,21 @@ const App = () => {
     await db.processedposts.put(newProcessedPost)
   }
 
-//   const putTrainLabel = async (newTrainLabel: TrainLabel) => {
-//     await db.trainLabels.put(newTrainLabel)
-//   }
+  const markComplete = (postId: string, feedId: string) => {
+    const newProcessedPostsForFeed = processedPosts.find((processedPostForFeed) => processedPostForFeed.id == feedId)?.processedPosts?.slice()
+    putProcessedPost({
+      id: feedId,
+      processedPosts: Array.from(new Set([newProcessedPostsForFeed, postId].flat())) as string[]
+    })
+  }
 
-//   const removeTrainLabel = async (categoryToRemove: TrainLabel) => {
-//     await db.trainLabels.where('id').equals(categoryToRemove?.id).delete()
-//   }
+  const putTrainLabel = async (newTrainLabel: TrainLabel) => {
+    await db.trainLabels.put(newTrainLabel)
+  }
+
+  const removeTrainLabel = async (categoryToRemove: TrainLabel) => {
+    await db.trainLabels.where('id').equals(categoryToRemove?.id).delete()
+  }
 
   // createEffect(() => {
   //   // const classifierEntry: Classifier | undefined = classifiers.find((classifierEntry) => classifierEntry?.id == selectedTrainLabel())
@@ -397,31 +408,25 @@ const App = () => {
 //       setSelectedClassifier(classifierEntry.model)
 //     }
 //   })
-//   const putClassifier = async (newClassifierEntry: Classifier) => {
-//     if (newClassifierEntry.model === '') {
-//       return
-//     }
-//     if (newClassifierEntry?.id === undefined) {
-//       return
-//     }
+  const putClassifier = async (newClassifierEntry: Classifier) => {
+    if (newClassifierEntry.model === '') {
+      return
+    }
+    if (newClassifierEntry?.id === undefined) {
+      return
+    }
 
-//     let oldClassifier = await db.classifiers.get(newClassifierEntry?.id)
+    let oldClassifier = await db.classifiers.get(newClassifierEntry?.id)
 
-//     if (newClassifierEntry.model == oldClassifier?.model) {
-//       return
-//     }
-//     await db.classifiers.put(newClassifierEntry)
-//   }
+    if (newClassifierEntry.model == oldClassifier?.model) {
+      return
+    }
+    await db.classifiers.put(newClassifierEntry)
+  }
 
-//   const removeClassifier = async (classifierToRemove: Classifier) => {
-//     await db.classifiers.where('id').equals(classifierToRemove?.id).delete()
-//   }
-
-//   const [posts, setPosts] = createSignal<object[]>([])
-
-//   // createEffect(
-//   //   selectedTrainLabel()
-//   // )
+  const removeClassifier = async (classifierToRemove: Classifier) => {
+    await db.classifiers.where('id').equals(classifierToRemove?.id).delete()
+  }
 
 //   createEffect(() => {
 //     const feedsForTrainLabel = checkedFeeds
@@ -500,7 +505,7 @@ const App = () => {
             <div>
               <NostrPosts
                 selectedTrainLabel={selectedTrainLabel}
-                handleTrain={(params: {mlText: string, mlClass: string}) => {
+                train={(params: {mlText: string, mlClass: string}) => {
                   console.log(params)
                   // setSelectedMlText(params.mlText)
                   // setSelectedMlClass(params.mlClass)
@@ -510,8 +515,10 @@ const App = () => {
                 selectedNostrAuthor={selectedNostrAuthor}
                 setSelectedNostrAuthor={setSelectedNostrAuthor}
                 putNostrKey={putNostrKey}
-                processedPosts={processedPosts}
+                // processedPosts={processedPosts}
                 putProcessedPost={putProcessedPost}
+                putClassifier={putClassifier}
+                markComplete={(postId: string) => markComplete(postId, 'nostr')}
               />
             </div>
           </Main>
@@ -544,6 +551,61 @@ const App = () => {
           }
           path='/nostr'
         />
+        <Route element={
+          <Main
+            navBarWidth={navBarWidth}
+            isOpen={isOpen}
+          >
+            <Classifiers
+              classifiers={classifiers}
+              putClassifier={putClassifier}
+              removeClassifier={removeClassifier}
+            />
+          </Main>
+        } path='/classifiers'
+        />
+                <Route element={<Main navBarWidth={navBarWidth} isOpen={isOpen}><div><Contribute /></div></Main>} path='/contribute' />
+        <Route element={
+          <Main
+            navBarWidth={navBarWidth}
+            isOpen={isOpen}
+          >
+            <Feeds
+              feeds={feeds}
+              putFeed={putFeed}
+              removeFeed={removeFeed}
+              trainLabels={trainLabels}
+            />
+          </Main>
+        } path='/feeds'
+        />
+        <Route element={
+          <Main
+            navBarWidth={navBarWidth}
+            isOpen={isOpen}
+          >
+              <CorsProxies
+              corsProxies={corsProxies}
+              putCorsProxy={putCorsProxy}
+              removeCorsProxy={removeCorsProxy}
+             />
+            </Main>
+        } path='/cors'
+        />
+
+        <Route element={
+          <Main
+            navBarWidth={navBarWidth}
+            isOpen={isOpen}
+          >
+            <TrainLabels
+              trainLabels={trainLabels}
+              putTrainLabel={putTrainLabel}
+              removeTrainLabel={removeTrainLabel}
+            />
+          </Main>
+        } path='/trainLabels'
+        />
       </Routes>
     </div>
   );
@@ -552,77 +614,7 @@ const App = () => {
 export default App;
 
 
-{/* <NostrPosts />
-    // setSelectedNostrAuthor={setSelectedNostrAuthor}
-    // // selectedNostrAuthor={selectedNostrAuthor()}
-    // // setNostrPosts={setNostrPosts}
-    // nostrPosts={nostrPosts()}
-    // train={(mlClass: string, mlText: string) => handleTrain(mlText,
-    //   mlClass,
-    //   selectedTrainLabel(),
-    //   selectedTrainLabel())}
-    // putClassifier={putClassifier}
-    // processedPosts={processedPosts}
-    // putProcessedPost={putProcessedPost}
-    // putNostrKey={putNostrKey}
-  /> */}
 
-
-//         <Route element={<Main navBarWidth={navBarWidth} isOpen={isOpen}><div><Contribute /></div></Main>} path='/contribute' />
-//         <Route element={
-//           <Main
-//             navBarWidth={navBarWidth}
-//             isOpen={isOpen}
-//           >
-//             <Feeds
-//               feeds={feeds}
-//               putFeed={putFeed}
-//               removeFeed={removeFeed}
-//               trainLabels={trainLabels}
-//             />
-//           </Main>
-//         } path='/feeds'
-//         />
-//         <Route element={
-//           <Main
-//             navBarWidth={navBarWidth}
-//             isOpen={isOpen}
-//           >
-//               <CorsProxies
-//               corsProxies={corsProxies}
-//               putCorsProxy={putCorsProxy}
-//               removeCorsProxy={removeCorsProxy}
-//              />
-//             </Main>
-//         } path='/cors'
-//         />
-
-//         <Route element={
-//           <Main
-//             navBarWidth={navBarWidth}
-//             isOpen={isOpen}
-//           >
-//             <TrainLabels
-//               trainLabels={trainLabels}
-//               putTrainLabel={putTrainLabel}
-//               removeTrainLabel={removeTrainLabel}
-//             />
-//           </Main>
-//         } path='/trainLabels'
-//         />
-//         <Route element={
-//           <Main
-//             navBarWidth={navBarWidth}
-//             isOpen={isOpen}
-//           >
-//             <Classifiers
-//               classifiers={classifiers}
-//               putClassifier={putClassifier}
-//               removeClassifier={removeClassifier}
-//             />
-//           </Main>
-//         } path='/classifiers'
-//         />
 //         <Route
 //           element={
 //             <Main

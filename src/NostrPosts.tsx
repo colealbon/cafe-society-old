@@ -1,5 +1,5 @@
 import {
-  //createSignal,
+  // createSignal,
   Show,
   For
 } from 'solid-js';
@@ -10,7 +10,7 @@ import {
 } from "@kobalte/core";
 
 import Heading from './Heading'
-// import PostTrain from './PostTrain'
+import PostTrain from './PostTrain'
 import { CgUserAdd } from 'solid-icons/cg'
 import { IoRemoveCircleOutline } from 'solid-icons/io'
 import {
@@ -27,14 +27,16 @@ import {
 
 const NostrPosts = (props: {
   selectedTrainLabel: any,
-  handleTrain: any,
+  train: any,
   nostrPosts: any,
   navBarWidth: number,
   selectedNostrAuthor: any,
   setSelectedNostrAuthor:any,
   putNostrKey: any,
-  processedPosts: any,
-  processedPost: any
+  // processedPosts: any,
+  putClassifier: any,
+  putProcessedPost: any,
+  markComplete: any
 }) => {
 
   // const [processedPostsForSession, setProcessedPostsForSession] = createSignal([])
@@ -62,7 +64,6 @@ const NostrPosts = (props: {
       follow: false,
       ignore: true
     }
-    // props.setNostrPosts([])
     props.putNostrKey(newNostrKey)
   }
 
@@ -94,7 +95,6 @@ const NostrPosts = (props: {
           </Link.Root>
           <Link.Root onClick={(event) => {
             event.preventDefault()
-            // props.setNostrPosts([])
             handleIgnore(props.selectedNostrAuthor)
             props.setSelectedNostrAuthor('')
           }}>
@@ -126,33 +126,32 @@ const NostrPosts = (props: {
                     <p class="collapsible__content-text">
                     {
                       <>
-                        <Show when={props.selectedNostrAuthor == ''}>
                           <Link.Root style={{'color': 'orange'}}onClick={(event) => {
                             event.preventDefault()
-                            // props.setNostrPosts([])
                             handleClickDrillPubkey(post.pubkey)
                           }}>
                             {`${post.pubkey.substring(0,5)}...${post.pubkey.substring(post.pubkey.length - 5)}`}
                           </Link.Root>
-                        </Show>
+
                         <div style={{'color': 'grey'}}>{`${parseInt((((Date.now() / 1000) - parseFloat(post.created_at)) / 60).toString())} minutes ago`}</div>
                         <div>
                           {post.content}
                         </div>
                         <Collapsible.Trigger class="collapsible__trigger">
-                        {/* <PostTrain
-                          category={() => 'nostr'}
+                        <PostTrain
                           // classifierJSON={classifierJSON()}
+                          trainLabel={'nostr'}
                           train={(mlClass: string) => props.train(mlClass, post.mlText)}
                           mlText={post.mlText}
                           prediction={post.prediction}
                           docCount={post.docCount}
-                          postId={post.id}
-                          putProcessedPost={props.putProcessedPost}
-                          putClassifier={props.putClassifier}
-                          setProcessedPostsForSession={setProcessedPostsForSession}
-                          processedPostsForSession={processedPostsForSession()}
-                        /> */}
+                          // putProcessedPost={props.putProcessedPost(post.id)}
+                          markComplete={() => props.markComplete(post.id)}
+                          // postId={post.id}
+                          // putClassifier={props.putClassifier}
+                          // setProcessedPostsForSession={setProcessedPostsForSession}
+                          // processedPostsForSession={processedPostsForSession()}
+                        />
                       </Collapsible.Trigger>
               </>}
                 </p>

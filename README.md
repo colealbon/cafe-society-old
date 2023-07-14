@@ -21,3 +21,7 @@ cafe-society.news currently only runs on duckduckgo and safari browsers. The UI 
 ## a message love
 
 A wet pile of dregs can smell pretty bad, but if you pick out the putrid stuff and expose it to the sun the dregs will smell like flowers!
+
+## todo
+
+30402 event kind to advertise trained models

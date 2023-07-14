@@ -25,7 +25,7 @@ import { Feed , TrainLabel} from './db-fixture'
 import Heading from './Heading'
 const Feeds = (props: {
     feeds: Feed[],
-    categories: TrainLabel[]
+    trainLabels: TrainLabel[]
     // eslint-disable-next-line no-unused-vars
     putFeed: (feed: Feed) => void,
     // eslint-disable-next-line no-unused-vars
@@ -38,7 +38,7 @@ const Feeds = (props: {
   const onOpenChange = (isOpen: boolean, triggerMode?: Combobox.ComboboxTriggerMode) => {
     // Show all options on ArrowDown/ArrowUp and button click.
     if (isOpen && triggerMode === "manual") {
-      setOptions(props.categories.map(category => category.id));
+      setOptions(props.trainLabels.map(trainLabel => trainLabel.id));
     }
   };
   const onInputChange = (value: string) => {
@@ -47,7 +47,7 @@ const Feeds = (props: {
   const group = createFormGroup({
     id: createFormControl(""),
     checked: createFormControl(true),
-    categories: createFormControl([])
+    trainLabels: createFormControl([])
   });
 
   const onSubmit = async (event: any) => {
@@ -61,7 +61,7 @@ const Feeds = (props: {
       Object.entries(Object.assign({
         id:'',
         checked:true,
-        categories:['']
+        trainLabels:['']
       }, group.value))
       .filter(([, value]) => `${value}` !== '')
     )]
@@ -70,17 +70,17 @@ const Feeds = (props: {
         ...{
           id: '',
           checked: true,
-          labels: []
+          trainLabels: []
         },
         ...newFeed
       }
-      newFeedObj.trainLabel = trainLabelValues()
+      newFeedObj.trainLabels = trainLabelValues()
       props.putFeed(newFeedObj)
     })
     group.setValue({
       id:'',
       checked:true,
-      categories: []
+      trainLabels: []
     })
     setTrainLabelValues([])
   };
@@ -102,7 +102,7 @@ const Feeds = (props: {
     const theNewFeed = Object.assign({
       id:'',
       checked:true,
-      categories: []
+      trainLabels: []
     }, newFeed())
     props.putFeed(theNewFeed)
   })
@@ -112,9 +112,10 @@ const Feeds = (props: {
       .find(feedEdit => feedEdit['id'] === id)
     group.setValue(Object.assign({
         id:'',
-        checked:true
+        checked:true,
+        trainLabels:[]
       }, valuesForSelectedFeed))
-    setTrainLabelValues(valuesForSelectedFeed?.categories)
+    setTrainLabelValues(valuesForSelectedFeed?.trainLabels)
   }
 
   return (
@@ -126,7 +127,7 @@ const Feeds = (props: {
       </div>
       <Combobox.Root<string>
         multiple
-        options={props.categories.map(category => category.id)}
+        options={props.trainLabels.map(trainLabel => trainLabel.id)}
         value={trainLabelValues()}
         onChange={setTrainLabelValues}
         onInputChange={onInputChange}
@@ -191,7 +192,7 @@ const Feeds = (props: {
           </Combobox.Content>
         </Combobox.Portal>
       </Combobox.Root>
-      <p>feed categories: {trainLabelValues().join(", ")}.</p>
+      <p>feed trainLabels: {trainLabelValues().join(", ")}.</p>
       <Separator.Root />
       <strong style={{'font-size': 'large'}}>feeds:</strong>
       <For each={props.feeds}>
@@ -232,16 +233,16 @@ export default Feeds
 
 // const Feeds = (props: {
 //   feeds: Feed[],
-//   categories: Category[]
+//   trainLabels: trainLabel[]
 //   // eslint-disable-next-line no-unused-vars
 //   putFeed: (feed: Feed) => void,
 //   // eslint-disable-next-line no-unused-vars
 //   removeFeed: (feed: Feed) => void
 // }) => {
 //   const [newFeed, setNewFeed] = createSignal();
-//   // const [feedCategories, setFeedCategories] = createSignal([]);
+//   // const [feedtrainLabels, setFeedtrainLabels] = createSignal([]);
 
-//   const onCategoriesInputChange = (value: string) => {
+//   const ontrainLabelsInputChange = (value: string) => {
 //     console.log('*******')
 //     console.log(value)
 //     // const valuesForSelectedFeed = props.feeds
@@ -251,7 +252,7 @@ export default Feeds
 //     //   {
 //     //     ...valuesForSelectedFeed
 //     //   },
-//     //   {categories: valuesForSelectedFeed.categories.slice()}
+//     //   {trainLabels: valuesForSelectedFeed.trainLabels.slice()}
 //     // ))
 //     // props.putFeed(newValueObj)
 //     // setNewFeed(newValueObj)
