@@ -19,20 +19,17 @@ const PostTrain = (props: {
     props.train(mlClass)
   }
 
-  // const denominator = props.prediction?.reduce((accumulator: number, currentValue: number) => {
-  // return accumulator + currentValue[1]
-  // }, 100.0)
+  let promoteOdds = 0.0
+  let suppressOdds = 0.0
 
-  let promoteNumerator = 0.0
-  let suppressNumerator = 0.0
+  if (!props.prediction?.find((predictionEntry: any) => predictionEntry[0] == 'unknown')) {
+    promoteOdds = 0.0 + props.prediction?.find((predictionEntry: any) => predictionEntry[0] == 'promote')[1]
+    suppressOdds = 0.0 + props.prediction?.find((predictionEntry: any) => predictionEntry[0]  == 'suppress')[1]
+  }
 
-  // if (!props.prediction?.find((predictionEntry: any) => predictionEntry[0] == 'unknown')) {
-  //   promoteNumerator = 0.0 + props.prediction?.find((predictionEntry: any) => predictionEntry[0] == 'promote')[1]
-  //   suppressNumerator = 0.0 + props.prediction?.find((predictionEntry: any) => predictionEntry[0]  == 'suppress')[1]
-  // }
   return(
     <div style={{"display": "flex", "flex-direction": 'row', 'justify-content':'space-around', 'width': '300px'}}>
-    <div>{suppressNumerator.toFixed(2).replace('NaN', '-')}</div>
+    <div>{suppressOdds.toFixed(2).replace('NaN', '-')}</div>
     <AiOutlineArrowDown class="collapsible__trigger-icon button" onclick={() => setTimeout(() => {
         handleComplete()
         handleTrain('suppress')
@@ -62,7 +59,7 @@ const PostTrain = (props: {
             handleTrain('promote')
           }, 300)
       }/>
-      <div>{promoteNumerator.toFixed(2).replace('NaN', '-')}</div>
+      <div>{promoteOdds.toFixed(2).replace('NaN', '-')}</div>
       <div/>
       <div/>
     </div>

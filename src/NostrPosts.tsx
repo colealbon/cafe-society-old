@@ -1,5 +1,4 @@
 import {
-  // createSignal,
   Show,
   For
 } from 'solid-js';
@@ -14,15 +13,7 @@ import PostTrain from './PostTrain'
 import { CgUserAdd } from 'solid-icons/cg'
 import { IoRemoveCircleOutline } from 'solid-icons/io'
 import {
-  // DbFixture,
-  // NostrRelay,
   NostrKey
-  //,
-  // TrainLabel,
-  // Feed,
-  // CorsProxy,
-  // Classifier,
-  // ProcessedPost
 } from "./db-fixture";
 
 const NostrPosts = (props: {
@@ -33,14 +24,10 @@ const NostrPosts = (props: {
   selectedNostrAuthor: any,
   setSelectedNostrAuthor:any,
   putNostrKey: any,
-  // processedPosts: any,
   putClassifier: any,
   putProcessedPost: any,
   markComplete: any
 }) => {
-
-  // const [processedPostsForSession, setProcessedPostsForSession] = createSignal([])
-
   const handleClickDrillPubkey = (publicKey: string) => {
     props.setSelectedNostrAuthor(publicKey)
   }
@@ -86,7 +73,7 @@ const NostrPosts = (props: {
           </Link.Root>
           <Link.Root onClick={(event) => {
             event.preventDefault()
-            handleFollow(props.selectedNostrAuthor)
+            handleFollow(props.selectedNostrAuthor())
             props.setSelectedNostrAuthor('')
           }}>
             <div color='green'>
@@ -95,7 +82,7 @@ const NostrPosts = (props: {
           </Link.Root>
           <Link.Root onClick={(event) => {
             event.preventDefault()
-            handleIgnore(props.selectedNostrAuthor)
+            handleIgnore(props.selectedNostrAuthor())
             props.setSelectedNostrAuthor('')
           }}>
             <div color='red'>
@@ -109,29 +96,24 @@ const NostrPosts = (props: {
         </div>
         <Separator.Root class="separator" />
       </Show>
-      <For each={
-          props.nostrPosts()
-          // .filter((post: any) => post.mlText !== '')
-          // .filter((postItem: any) => {
-          //   return Array.from(processedPostsForSession()).indexOf(postItem.mlText) == -1
-          // })
-
-          } fallback={<>Loading</>}>
+      <For each={props.nostrPosts()} fallback={<>Loading</>}>
           {(post) => {
             return (
-              <>
+              <Show when={post.mlText != ''}>
               {
                 <Collapsible.Root class="collapsible" defaultOpen={true}>
                   <Collapsible.Content class="collapsible__content">
                     <p class="collapsible__content-text">
                     {
                       <>
-                          <Link.Root style={{'color': 'orange'}}onClick={(event) => {
-                            event.preventDefault()
-                            handleClickDrillPubkey(post.pubkey)
-                          }}>
-                            {`${post.pubkey.substring(0,5)}...${post.pubkey.substring(post.pubkey.length - 5)}`}
-                          </Link.Root>
+                        <Link.Root
+                          style={{'color': 'orange'}}
+                          onClick={(event) => {
+                          event.preventDefault()
+                          handleClickDrillPubkey(post.pubkey)
+                        }}>
+                          {`${post.pubkey.substring(0,5)}...${post.pubkey.substring(post.pubkey.length - 5)}`}
+                        </Link.Root>
 
                         <div style={{'color': 'grey'}}>{`${parseInt((((Date.now() / 1000) - parseFloat(post.created_at)) / 60).toString())} minutes ago`}</div>
                         <div>
@@ -139,25 +121,24 @@ const NostrPosts = (props: {
                         </div>
                         <Collapsible.Trigger class="collapsible__trigger">
                         <PostTrain
-                          // classifierJSON={classifierJSON()}
                           trainLabel={'nostr'}
-                          train={(mlClass: string) => props.train(mlClass, post.mlText)}
+                          train={(mlClass: string) => {
+                            props.train({
+                              mlClass: mlClass,
+                              mlText: post.mlText
+                            })
+                          }}
                           mlText={post.mlText}
                           prediction={post.prediction}
                           docCount={post.docCount}
-                          // putProcessedPost={props.putProcessedPost(post.id)}
                           markComplete={() => props.markComplete(post.id)}
-                          // postId={post.id}
-                          // putClassifier={props.putClassifier}
-                          // setProcessedPostsForSession={setProcessedPostsForSession}
-                          // processedPostsForSession={processedPostsForSession()}
                         />
                       </Collapsible.Trigger>
-              </>}
+                    </>}
                 </p>
               </Collapsible.Content>
             </Collapsible.Root>
-          }</>
+          }</Show>
             )
           }}
         </For>
@@ -165,5 +146,3 @@ const NostrPosts = (props: {
   )
 }
 export default NostrPosts;
-
-// <Button.Root onClick={props.handleTrain({mlText: 'world peace', mlClass:'promote'})}>NostrPosts.tsx</Button.Root>

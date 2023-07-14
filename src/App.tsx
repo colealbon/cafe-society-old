@@ -110,6 +110,7 @@ const prepNostrPost = (post: any) => {
         }
       ))
       .filter((word: string) => word.length < 30)
+      .filter((word: string) => word!='nostr')
       .join(' ')
       .toLowerCase() || '',
     ...post
@@ -163,6 +164,7 @@ function fetchNostrPosts(params: string) {
     if (paramsObj.classifier != '') {
       winkClassifier.importJSON(paramsObj.classifier)
     }
+
     fetcher.fetchLatestEvents(
       [...paramsObj.nostrRelayList],
       filterOptions,
@@ -171,6 +173,7 @@ function fetchNostrPosts(params: string) {
     .then((allThePosts: any) => {
       resolve(
         allThePosts
+        .filter((nostrPost: any) => `${nostrPost.mlText}`.replace(' ','') != '')
         .filter((nostrPost: any) => !ignoreAuthor.find((ignoreKey: {publicKey: string}) => ignoreKey.publicKey == nostrPost.pubkey))
         .filter((nostrPost: any) => processedPosts.indexOf(nostrPost.id) == -1)
         .map((nostrPost: any) => prepNostrPost(nostrPost))
@@ -178,6 +181,7 @@ function fetchNostrPosts(params: string) {
           post: post,
           classifier: winkClassifier
         }))
+        .reverse()
       )
     })
   })
@@ -280,6 +284,7 @@ function fetchNostrPosts(params: string) {
 
 const App = () => {
   const [selectedTrainLabel, setSelectedTrainLabel] = createSignal('')
+  const [sessionClassifier, setSessionClassifier] = createSignal('')
   const [isOpen, setIsOpen] = createStoredSignal('isNavbarOpen', false);
   const trainLabels = createDexieArrayQuery(() => db.trainLabels.toArray());
   const nostrRelays = createDexieArrayQuery(() => db.nostrrelays.toArray());
@@ -298,15 +303,16 @@ const App = () => {
     const nostrRelayList = checkedNostrRelays
       .map((relay: NostrRelay) => relay.id)
     const nostrAuthor = selectedNostrAuthor()
-    const classifierEntry: string = classifiers.find((classifierEntry) => classifierEntry?.id == selectedTrainLabel())?.model || ''
+    const classifierModel: string = classifiers.find((classifierEntry) => classifierEntry?.id == 'nostr')?.model || ''
     const processedNostrPosts = processedPosts.find((processedPostsEntry) => processedPostsEntry?.id == 'nostr')?.processedPosts
     const newQuery = JSON.stringify({
       'nostrRelayList': nostrRelayList,
       'nostrAuthor': nostrAuthor,
       'ignore': ignoreNostrKeys,
-      'classifier': classifierEntry,
+      'classifier': classifierModel,
       'processedPosts': processedNostrPosts
     })
+    setSessionClassifier(classifierModel)
     setNostrQuery(newQuery)
   })
 
@@ -327,7 +333,7 @@ const App = () => {
   }
 
   const classifiers = createDexieArrayQuery(() => db.classifiers.toArray());
-   const feeds = createDexieArrayQuery(() => db.feeds.toArray());
+  const feeds = createDexieArrayQuery(() => db.feeds.toArray());
 
 //   const checkedFeeds = createDexieArrayQuery(() => db.feeds
 //     .filter(feed => feed.checked === true)
@@ -372,53 +378,42 @@ const App = () => {
     await db.trainLabels.where('id').equals(categoryToRemove?.id).delete()
   }
 
-  // createEffect(() => {
-  //   // const classifierEntry: Classifier | undefined = classifiers.find((classifierEntry) => classifierEntry?.id == selectedTrainLabel())
-  //   setSelectedClassifier(
-  //     classifiers.find((classifierEntry) => classifierEntry?.id == selectedTrainLabel())?.model
-  //   )
-  // })
+  const train = (params: {
+    mlText: string,
+    mlClass: string,
+    trainLabel: string
+  }) => {
 
-  // createEffect(() => {
-  //   if (selectedTrainLabel() === '') {
-  //     return
-  //   }
-  //   // console.log(selectedTrainLabel())
-  // })
+    const oldModel: string = classifiers.find((classifierEntry) => classifierEntry?.id == params.trainLabel)?.model || ''
+    const winkClassifier = WinkClassifier()
+    winkClassifier.definePrepTasks( [ prepTask ] );
+    winkClassifier.defineConfig( { considerOnlyPresence: true, smoothingFactor: 0.5 } );
+    if (oldModel != '') {
+      winkClassifier.importJSON(oldModel)
+    }
+    winkClassifier.learn(params.mlText, params.mlClass)
+    const newModel: string = winkClassifier.exportJSON()
+    const newClassifierEntry = {
+      id: params.trainLabel,
+      model: newModel,
+      thresholdSuppressDocCount: '10',
+      thresholdPromoteDocCount: '10'
+    }
+    setSessionClassifier(newModel)
+    putClassifier(newClassifierEntry)
+  }
 
-  // createEffect(() => {
-  //   if (selectedMlText() === '') {
-  //     return
-  //   }
-  //   console.log(selectedMlText())
-  //   console.log(selectedTrainLabel())
-  // })
-
-  // createEffect(() => {
-  //   if (selectedMlClass() === '') {
-  //     return
-  //   }
-  //   console.log(selectedMlClass())
-  //   console.log(selectedTrainLabel())
-  // })
-
-//   createEffect(() => {
-//       setSelectedClassifier(newClassifierEntry)
-//     } else {
-//       setSelectedClassifier(classifierEntry.model)
-//     }
-//   })
   const putClassifier = async (newClassifierEntry: Classifier) => {
+    const winkClassifier = WinkClassifier()
+    winkClassifier.definePrepTasks( [ prepTask ] );
+    winkClassifier.defineConfig( { considerOnlyPresence: true, smoothingFactor: 0.5 } );
+    if (newClassifierEntry.model != '') {
+      winkClassifier.importJSON(newClassifierEntry.model)
+    }
     if (newClassifierEntry.model === '') {
       return
     }
     if (newClassifierEntry?.id === undefined) {
-      return
-    }
-
-    let oldClassifier = await db.classifiers.get(newClassifierEntry?.id)
-
-    if (newClassifierEntry.model == oldClassifier?.model) {
       return
     }
     await db.classifiers.put(newClassifierEntry)
@@ -505,17 +500,23 @@ const App = () => {
             <div>
               <NostrPosts
                 selectedTrainLabel={selectedTrainLabel}
-                train={(params: {mlText: string, mlClass: string}) => {
-                  console.log(params)
-                  // setSelectedMlText(params.mlText)
-                  // setSelectedMlClass(params.mlClass)
+                train={(params: {
+                  mlText: string,
+                  mlClass: string,
+                  trainLabel: string
+                }) => {
+                  train({
+                    mlText: params.mlText,
+                    mlClass: params.mlClass,
+                    trainLabel: 'nostr',
+                    classifierModel: sessionClassifier()
+                  })
                 }}
                 nostrPosts={nostrPosts}
                 navBarWidth={navBarWidth}
                 selectedNostrAuthor={selectedNostrAuthor}
                 setSelectedNostrAuthor={setSelectedNostrAuthor}
                 putNostrKey={putNostrKey}
-                // processedPosts={processedPosts}
                 putProcessedPost={putProcessedPost}
                 putClassifier={putClassifier}
                 markComplete={(postId: string) => markComplete(postId, 'nostr')}
@@ -564,7 +565,7 @@ const App = () => {
           </Main>
         } path='/classifiers'
         />
-                <Route element={<Main navBarWidth={navBarWidth} isOpen={isOpen}><div><Contribute /></div></Main>} path='/contribute' />
+        <Route element={<Main navBarWidth={navBarWidth} isOpen={isOpen}><div><Contribute /></div></Main>} path='/contribute' />
         <Route element={
           <Main
             navBarWidth={navBarWidth}
