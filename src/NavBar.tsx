@@ -16,12 +16,6 @@ const NavBar = (props: {
   setSelectedTrainLabel: any;
   trainLabels: TrainLabel[];
 }) => {
-  const clickSetSelectedTrainLabel = () => {
-    // event.preventDefault()
-    // eslint-disable-next-line solid/reactivity
-    return (trainLabel: string) => props.setSelectedTrainLabel(trainLabel)
-  }
-
   return (
   <>
     <div
@@ -35,14 +29,17 @@ const NavBar = (props: {
       ⭠
       </Link.Root>
       <div />
-      <Link.Root href="/posts" onClick={() => clickSetSelectedTrainLabel()('')}
+      <Link.Root href="/posts" onClick={() => props.setSelectedTrainLabel('')}
       >Posts</Link.Root>
       <div style={{margin: "10px"}}>
           <For each={props.trainLabels}>
             {
               (category) => (
                 <Link.Root
-                  onClick={() => clickSetSelectedTrainLabel()(category.id)}
+                  onClick={() => {
+                    console.log(category.id)
+                    props.setSelectedTrainLabel(category.id)
+                  }}
                   href={`/posts/${category.id}`}
                 >
               {`${category.id}`}
@@ -51,7 +48,7 @@ const NavBar = (props: {
             }
           </For>
           <Link.Root
-            onClick={() => clickSetSelectedTrainLabel()('nostr')}
+            onClick={() => props.setSelectedTrainLabel('nostr')}
             href="/nostrposts"
           >
             nostr

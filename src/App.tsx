@@ -1,9 +1,11 @@
 import { convert } from 'html-to-text'
+
 import {
   createSignal,
   createEffect,
   Signal,
-  createResource
+  createResource,
+  Suspense
 } from 'solid-js';
 import {
   Routes,
@@ -35,17 +37,17 @@ import {
   Classifier,
   ProcessedPost
 } from "./db-fixture";
-// import axios from 'axios';
-// import { XMLParser } from 'fast-xml-parser'
+import axios from 'axios';
+import { XMLParser } from 'fast-xml-parser'
 import { createDexieArrayQuery } from "solid-dexie";
-// import Posts from './Posts'
+import Posts, {shortUrl} from './Posts'
 import NostrKeys from './NostrKeys';
 import Feeds from './Feeds';
 import CorsProxies from './CorsProxies';
 import NostrRelays from './NostrRelays';
 import TrainLabels from './TrainLabels';
 import Classifiers from './Classifiers';
-// import Heading from './Heading';
+import Heading from './Heading';
 import Contribute from './Contribute';
 import defaultNostrKeys from './defaultNostrKeys';
 import defaultNostrRelays from './defaultNostrRelays';
@@ -56,7 +58,7 @@ import defaultClassifiers from './defaultClassifiers';
 import defaultProcessed from './defaultProcessed';
 
 const db = new DbFixture();
-// const parser = new XMLParser();
+const parser = new XMLParser();
 const nlp = winkNLP( model );
 const its = nlp.its;
 
@@ -101,18 +103,19 @@ const prepTask = function ( text: string ) {
 const prepNostrPost = (post: any) => {
   return {
     mlText: prepTask(convert(
-        `${post.content}`.replace(/\d+/g, ''),
-        {
-          ignoreLinks: true,
-          ignoreHref: true,
-          ignoreImage: true,
-          linkBrackets: false
-        }
-      ))
-      .filter((word: string) => word.length < 30)
-      .filter((word: string) => word!='nostr')
-      .join(' ')
-      .toLowerCase() || '',
+      `${post.content}`.replace(/\d+/g, ''),
+      {
+        ignoreLinks: true,
+        ignoreHref: true,
+        ignoreImage: true,
+        linkBrackets: false
+      }
+    ))
+    .filter((word: string) => word.length < 30)
+    .filter((word: string) => word!='nostr')
+    .filter((word: string) => word!='vmess')
+    .join(' ')
+    .toLowerCase() || '',
     ...post
   }
 }
@@ -144,147 +147,88 @@ const applyPrediction = (params: {
   }
 }
 
-function fetchNostrPosts(params: string) {
-  return new Promise((resolve) => {
-    const paramsObj = JSON.parse(params)
-    const filterOptions = `${paramsObj.nostrAuthor}` != '' ?
-    {
-      kinds: [ eventKind.text ],
-      authors: [`${paramsObj.nostrAuthor}`],
-    } :
-    {
-      kinds: [ eventKind.text ]
-    }
-    const maxPosts = `${paramsObj.nostrAuthor}` == '' ? 100 : 100
-    const ignoreAuthor = paramsObj.ignore
-    const processedPosts = [paramsObj.processedPosts].flat()
-    const winkClassifier = WinkClassifier()
-    winkClassifier.definePrepTasks( [ prepTask ] );
-    winkClassifier.defineConfig( { considerOnlyPresence: true, smoothingFactor: 0.5 } );
-    if (paramsObj.classifier != '') {
-      winkClassifier.importJSON(paramsObj.classifier)
-    }
+const parseRSS = (content:any) => {
+  const feedTitle = content.rss.channel.title
+  const feedLink = content.rss.channel.link
+  const feedDescription = content.rss.channel.description
+  const feedPosts = content.rss.channel.item.length == null ?
+    [content.rss.channel.item] :
+    content.rss.channel.item
 
-    fetcher.fetchLatestEvents(
-      [...paramsObj.nostrRelayList],
-      filterOptions,
-      maxPosts
-    )
-    .then((allThePosts: any) => {
-      resolve(
-        allThePosts
-        .filter((nostrPost: any) => `${nostrPost.mlText}`.replace(' ','') != '')
-        .filter((nostrPost: any) => !ignoreAuthor.find((ignoreKey: {publicKey: string}) => ignoreKey.publicKey == nostrPost.pubkey))
-        .filter((nostrPost: any) => processedPosts.indexOf(nostrPost.id) == -1)
-        .map((nostrPost: any) => prepNostrPost(nostrPost))
-        .map((post: any) => applyPrediction({
-          post: post,
-          classifier: winkClassifier
-        }))
-        .reverse()
-      )
+  return [...feedPosts]
+    .map((itemEntry) => ({
+      feedTitle: feedTitle,
+      feedLink: feedLink,
+      feedDescription: feedDescription,
+      ...itemEntry
+    }))
+    .map(itemEntry => ({
+      postSummary: convert(
+        itemEntry.description,
+        {
+          ignoreLinks: true,
+          ignoreHref: true,
+          ignoreImage: true,
+          linkBrackets: false
+        })
+      .replace(/\[.*?\]/g, '')
+      .replace(/\n/g,' ')?.toString()
+      .trim(),
+      ...itemEntry
+    }))
+    .map(itemEntry => ({
+      ...itemEntry,
+      postId: itemEntry.link || itemEntry.guid,
+      postTitle: itemEntry.title,
+      mlText: prepTask(convert(`${itemEntry.title} ${itemEntry.postSummary}`))
+        .filter((word) => word.length < 30)
+        .join(' ')
+        .toLowerCase()
     })
+  )
+}
+const parseAtom = (content: any) => {
+  const feedTitle = content.feed?.feedTitle
+  const feedLink = content.feed?.id
+  const feedDescription = content.feed?.subtitle
+  const feedPosts = content.feed?.entry
+  return feedPosts?.map((itemEntry: any) => ({
+      feedTitle: feedTitle,
+      feedLink: feedLink,
+      feedDescription: feedDescription,
+      ...itemEntry[0]
+    }))
+    .map((itemEntry: any) => ({
+      postSummary: convert(itemEntry.content, { ignoreLinks: true, ignoreHref: true, ignoreImage: true, linkBrackets: false  })
+      .replace(/\[.*?\]/g, '')
+      .replace(/\n/g,' ')?.toString()
+      .trim(),
+      ...itemEntry
+    }))
+    .map((itemEntry: any) => ({
+      ...itemEntry,
+      postId: itemEntry?.id,
+      postTitle: `${itemEntry.title}`,
+      mlText: prepTask(convert(`${itemEntry.title} ${itemEntry.postSummary}`))
+        .filter((word) => word.length < 30)
+        .join(' ')
+        .toLowerCase()
+    })
+  )
+}
+const parsePosts = (postsXML: any[]) => {
+  const parseQueue: any[] = []
+  postsXML.forEach(xmlEntry => {
+    parseQueue.push(new Promise(resolve => {
+      const content = parser.parse(xmlEntry.data)
+      const parsed = content.rss ? parseRSS(content) : parseAtom(content)
+      resolve(parsed)
+    }))
   })
+  return Promise.all(parseQueue)
 }
 
-// const parseRSS = (content:any) => {
-//   const feedTitle = content.rss.channel.title
-//   const feedLink = content.rss.channel.link
-//   const feedDescription = content.rss.channel.description
-//   const feedPosts = content.rss.channel.item.length == null ?
-//     [content.rss.channel.item] :
-//     content.rss.channel.item
-
-//   return [...feedPosts]
-//     .map((itemEntry) => ({
-//       feedTitle: feedTitle,
-//       feedLink: feedLink,
-//       feedDescription: feedDescription,
-//       ...itemEntry
-//     }))
-//     .map(itemEntry => ({
-//       postSummary: convert(
-//         itemEntry.description,
-//         {
-//           ignoreLinks: true,
-//           ignoreHref: true,
-//           ignoreImage: true,
-//           linkBrackets: false
-//         })
-//       .replace(/\[.*?\]/g, '')
-//       .replace(/\n/g,' ')?.toString()
-//       .trim(),
-//       ...itemEntry
-//     }))
-//     .map(itemEntry => ({
-//       ...itemEntry,
-//       postId: itemEntry.link || itemEntry.guid,
-//       postTitle: itemEntry.title,
-//       mlText: prepTask(convert(`${itemEntry.title} ${itemEntry.postSummary}`))
-//         .filter((word) => word.length < 30)
-//         .join(' ')
-//         .toLowerCase()
-//     })
-//   )
-// }
-// const parseAtom = (content: any) => {
-//   const feedTitle = content.feed?.feedTitle
-//   const feedLink = content.feed?.id
-//   const feedDescription = content.feed?.subtitle
-//   const feedPosts = content.feed?.entry
-//   return feedPosts?.map((itemEntry: any) => ({
-//       feedTitle: feedTitle,
-//       feedLink: feedLink,
-//       feedDescription: feedDescription,
-//       ...itemEntry[0]
-//     }))
-//     .map((itemEntry: any) => ({
-//       postSummary: convert(itemEntry.content, { ignoreLinks: true, ignoreHref: true, ignoreImage: true, linkBrackets: false  })
-//       .replace(/\[.*?\]/g, '')
-//       .replace(/\n/g,' ')?.toString()
-//       .trim(),
-//       ...itemEntry
-//     }))
-//     .map((itemEntry: any) => ({
-//       ...itemEntry,
-//       postId: itemEntry?.id,
-//       postTitle: `${itemEntry.title}`,
-//       mlText: prepTask(convert(`${itemEntry.title} ${itemEntry.postSummary}`))
-//         .filter((word) => word.length < 30)
-//         .join(' ')
-//         .toLowerCase()
-//     })
-//   )
-// }
-// const parsePosts = (postsXML: any[]) => {
-//   const parseQueue: any[] = []
-//   postsXML.forEach(xmlEntry => {
-//     parseQueue.push(new Promise(resolve => {
-//       const content = parser.parse(xmlEntry.data)
-//       const parsed = content.rss ? parseRSS(content) : parseAtom(content)
-//       resolve(parsed)
-//     }))
-//   })
-//   return Promise.all(parseQueue)
-// }
-
-// const removePunctuation = (text: string) => {
-//   return `${text}`
-//     .replace(/[/?…".,#!$%^&*;:{}=_`~()'’‘“”]/g, '')
-//     .replace(/\s{2,}/g, ' ');
-// };
-
-// const shortUrl = (text: string) => {
-//   const theUrl = new URL(text);
-//   const newPath = removePunctuation(`${theUrl.hostname}${theUrl.pathname}`)
-//     .replace(/-/g, '')
-//     .toLowerCase();
-//   return newPath;
-// };
-
 const App = () => {
-  const [selectedTrainLabel, setSelectedTrainLabel] = createSignal('')
-  const [sessionClassifier, setSessionClassifier] = createSignal('')
   const [isOpen, setIsOpen] = createStoredSignal('isNavbarOpen', false);
   const trainLabels = createDexieArrayQuery(() => db.trainLabels.toArray());
   const nostrRelays = createDexieArrayQuery(() => db.nostrrelays.toArray());
@@ -292,8 +236,11 @@ const App = () => {
     .filter(relay => relay.checked === true)
     .toArray()
     );
+    const [selectedTrainLabel, setSelectedTrainLabel] = createStoredSignal('selectedTrainLabel', '')
   const [selectedNostrAuthor, setSelectedNostrAuthor] = createStoredSignal('selectedNostrAuthor', '')
   const [nostrQuery, setNostrQuery] = createSignal('')
+  const [fetchRssParams, setFetchRssParams] = createSignal('')
+
   const ignoreNostrKeys = createDexieArrayQuery(() => db.nostrkeys
   .filter(nostrKey => nostrKey.ignore === true)
   .toArray()
@@ -303,21 +250,15 @@ const App = () => {
     const nostrRelayList = checkedNostrRelays
       .map((relay: NostrRelay) => relay.id)
     const nostrAuthor = selectedNostrAuthor()
-    const classifierModel: string = classifiers.find((classifierEntry) => classifierEntry?.id == 'nostr')?.model || ''
-    const processedNostrPosts = processedPosts.find((processedPostsEntry) => processedPostsEntry?.id == 'nostr')?.processedPosts
     const newQuery = JSON.stringify({
       'nostrRelayList': nostrRelayList,
       'nostrAuthor': nostrAuthor,
       'ignore': ignoreNostrKeys,
-      'classifier': classifierModel,
-      'processedPosts': processedNostrPosts
     })
-    setSessionClassifier(classifierModel)
     setNostrQuery(newQuery)
   })
-
   const [nostrPosts] = createResource(nostrQuery, fetchNostrPosts);
-
+  const [rssPosts] = createResource(fetchRssParams, fetchRssPosts);
   const putNostrRelay = async (newNostrRelay: NostrRelay) => {
     await db.nostrrelays.put(newNostrRelay)
   };
@@ -335,9 +276,13 @@ const App = () => {
   const classifiers = createDexieArrayQuery(() => db.classifiers.toArray());
   const feeds = createDexieArrayQuery(() => db.feeds.toArray());
 
-//   const checkedFeeds = createDexieArrayQuery(() => db.feeds
-//     .filter(feed => feed.checked === true)
-//     .toArray());
+  const checkedFeeds = createDexieArrayQuery(() => db.feeds
+    .filter(feed => feed.checked === true)
+    .toArray());
+
+  const checkedCorsProxies = createDexieArrayQuery(() => db.corsproxies
+    .filter(corsProxy => corsProxy.checked === true)
+    .toArray());
 
   const putFeed = async (newFeed: Feed) => {
     await newFeed?.id && db.feeds.put(newFeed)
@@ -383,7 +328,6 @@ const App = () => {
     mlClass: string,
     trainLabel: string
   }) => {
-
     const oldModel: string = classifiers.find((classifierEntry) => classifierEntry?.id == params.trainLabel)?.model || ''
     const winkClassifier = WinkClassifier()
     winkClassifier.definePrepTasks( [ prepTask ] );
@@ -399,7 +343,7 @@ const App = () => {
       thresholdSuppressDocCount: '10',
       thresholdPromoteDocCount: '10'
     }
-    setSessionClassifier(newModel)
+    console.log(newClassifierEntry)
     putClassifier(newClassifierEntry)
   }
 
@@ -423,52 +367,124 @@ const App = () => {
     await db.classifiers.where('id').equals(classifierToRemove?.id).delete()
   }
 
-//   createEffect(() => {
-//     const feedsForTrainLabel = checkedFeeds
-//       .filter((feed) => selectedTrainLabel() === '' || feed.trainLabels.indexOf(selectedTrainLabel()) !== -1)
-//     const fetchQueue: any[] = []
-//     feedsForTrainLabel.forEach((feed: Feed) => {
-//       fetchQueue.push(new Promise((resolve) => {
-//         try {
-//           corsProxies?.slice().forEach((corsProxy) => {
-//             axios.get(`${corsProxy.id}${feed.id}`)
-//             .then(response => {
-//               resolve(response)
-//             })
-//           })
-//         } catch (error) {
-//           resolve('')
-//         }
-//       }))
-//     })
-//     Promise.all(fetchQueue)
-//     .then(fetchedPosts => parsePosts(fetchedPosts))
-//     .then((parsed: any[]) => {
-//       setPosts(parsed.flat()
-//       .filter(post => `${post?.mlText}`.trim() != '')
-//       .map(post => {
-//         return {
-//           ...post,
-//           postTitle: post?.postTitle
-//           .replace(/&#039;/g, "'")
-//           .replace(/&#8217;/g, "'")
-//           .replace(/&#8211;/g, "-")
-//           .replace(/&#8216;/g, "'")
-//           .replace(/&#038;/g, "&")
-//         }
-//       })
-//       .filter((postItem: any) => {
-//         const processedPostsID = postItem.feedLink === "" ? postItem.guid : shortUrl(postItem.feedLink)
-//         const processedPostsForFeedLink = processedPosts.slice()
-//         .find((processedPostEntry: any) => processedPostEntry?.id === processedPostsID)?.processedPosts.slice()
-//         if (processedPostsForFeedLink == undefined) {
-//           return true
-//         }
-//         return processedPostsForFeedLink.indexOf(postItem?.mlText) == -1
-//       })
-//       .map((post) => applyPrediction(post, selectedClassifier())))
-//     })
-//   })
+  createEffect(() => {
+    const feedsForTrainLabel = checkedFeeds
+      .filter((feed) => {
+        console.log(selectedTrainLabel())
+        return selectedTrainLabel() === '' || feed.trainLabels.indexOf(selectedTrainLabel()) !== -1
+      })
+      .map((feed: Feed) => feed.id)
+    const corsProxyList = checkedCorsProxies
+      .map((corsProxy) => corsProxy.id)
+    setFetchRssParams(JSON.stringify({
+      feedsForTrainLabel: feedsForTrainLabel,
+      corsProxies: corsProxyList
+    }))
+  })
+
+  function fetchNostrPosts(params: string) {
+    return new Promise((resolve) => {
+      const paramsObj = JSON.parse(params)
+      if (paramsObj.nostrRelayList?.length == 0) {
+        return
+      }
+      const filterOptions = `${paramsObj.nostrAuthor}` != '' ?
+      {
+        kinds: [ eventKind.text ],
+        authors: [`${paramsObj.nostrAuthor}`],
+      } :
+      {
+        kinds: [ eventKind.text ]
+      }
+      const maxPosts = `${paramsObj.nostrAuthor}` == '' ? 100 : 100
+      const ignoreAuthor = paramsObj.ignore
+      const winkClassifier = WinkClassifier()
+      winkClassifier.definePrepTasks( [ prepTask ] );
+      winkClassifier.defineConfig( { considerOnlyPresence: true, smoothingFactor: 0.5 } );
+      const classifierModel: string = classifiers.find((classifierEntry: any) => classifierEntry?.id == 'nostr')?.model || ''
+      if (paramsObj.classifier != '') {
+        winkClassifier.importJSON(classifierModel)
+      }
+      fetcher.fetchLatestEvents(
+        [...paramsObj.nostrRelayList],
+        filterOptions,
+        maxPosts
+      )
+      .then((allThePosts: any) => {
+        const processedNostrPosts = processedPosts.find((processedPostsEntry) => processedPostsEntry?.id == 'nostr')?.processedPosts
+        resolve(
+          allThePosts
+          .filter((nostrPost: any) => `${nostrPost.mlText}`.replace(' ','') != '')
+          .filter((nostrPost: any) => !ignoreAuthor.find((ignoreKey: {publicKey: string}) => ignoreKey.publicKey == nostrPost.pubkey))
+          .map((nostrPost: any) => prepNostrPost(nostrPost))
+          .filter((nostrPost: any) => {
+            return processedNostrPosts?.indexOf(nostrPost.mlText) == -1
+          })
+          .map((post: any) => applyPrediction({
+            post: post,
+            classifier: winkClassifier
+          }))
+          .reverse()
+        )
+      })
+    })
+  }
+  function fetchRssPosts(params: string) {
+    if (params == '') {
+      return
+    }
+    const paramsObj = JSON.parse(params)
+    if (paramsObj.feedsForTrainLabel.length < 1) {
+      return
+    }
+    console.log(paramsObj)
+    return new Promise((resolve) => {
+      const fetchQueue: any[] = []
+      paramsObj.feedsForTrainLabel.forEach((feed: Feed) => {
+        fetchQueue.push(new Promise((resolve) => {
+          try {
+            paramsObj.corsProxies?.slice().forEach((corsProxy: any) => {
+              axios.get(`${corsProxy}${feed}`)
+              .then(response => {
+                resolve(response)
+              })
+            })
+          } catch (error) {
+            resolve('')
+          }
+        }))
+      })
+      Promise.all(fetchQueue)
+      .then(fetchedPosts => parsePosts(fetchedPosts))
+      // .then((parsedPosts: any) => resolve(parsedPosts))
+      .then((parsed: any[]) => {
+        //const processedPostsForTrainLabel = processedPosts.find((processedPostsEntry) => processedPostsEntry?.id == selectedTrainLabel())?.processedPosts
+        resolve(parsed?.flat()
+        .filter(post => `${post?.mlText}`.trim() != '')
+        .map(post => {
+          return {
+            ...post,
+            postTitle: post?.postTitle
+            .replace(/&#039;/g, "'")
+            .replace(/&#8217;/g, "'")
+            .replace(/&#8211;/g, "-")
+            .replace(/&#8216;/g, "'")
+            .replace(/&#038;/g, "&")
+          }
+        })
+        .filter((postItem: any) => {
+          const processedPostsID = postItem.feedLink === "" ? postItem.guid : shortUrl(postItem.feedLink)
+          const processedPostsForFeedLink = processedPosts.find((processedPostsEntry) => processedPostsEntry?.id == processedPostsID)?.processedPosts
+          if (processedPostsForFeedLink == undefined) {
+            return true
+          }
+          return processedPostsForFeedLink.indexOf(postItem?.mlText) == -1
+        })
+        // .map((post) => applyPrediction(post, )))
+        )
+      })
+    })
+  }
 
   return (
   <div>
@@ -509,7 +525,6 @@ const App = () => {
                     mlText: params.mlText,
                     mlClass: params.mlClass,
                     trainLabel: 'nostr',
-                    classifierModel: sessionClassifier()
                   })
                 }}
                 nostrPosts={nostrPosts}
@@ -585,15 +600,14 @@ const App = () => {
             navBarWidth={navBarWidth}
             isOpen={isOpen}
           >
-              <CorsProxies
+            <CorsProxies
               corsProxies={corsProxies}
               putCorsProxy={putCorsProxy}
               removeCorsProxy={removeCorsProxy}
-             />
-            </Main>
+           />
+          </Main>
         } path='/cors'
         />
-
         <Route element={
           <Main
             navBarWidth={navBarWidth}
@@ -607,47 +621,61 @@ const App = () => {
           </Main>
         } path='/trainLabels'
         />
+        <Route
+          element={
+            <Main
+              navBarWidth={navBarWidth}
+              isOpen={isOpen}
+            >
+            <Suspense
+              fallback={
+                <div class='fade-in'>
+                  <Heading>
+                    <div>{selectedTrainLabel()}</div>
+                  </Heading>
+                  <div>fetching posts</div>
+                </div>
+              }
+            >
+              <Posts
+                trainLabel={selectedTrainLabel() || 'posts'}
+                train={(params: any) => {
+                  train({
+                    mlText: params.mlText,
+                    mlClass: params.mlClass,
+                    trainLabel: selectedTrainLabel(),
+                  })
+                }}
+                markComplete={(postId: string, feedId: string) => markComplete(postId, feedId)}
+                rssPosts={rssPosts()}
+                setSelectedTrainLabel={setSelectedTrainLabel}
+                // nostrPosts={nostrPosts}
+                // navBarWidth={navBarWidth}
+                // selectedNostrAuthor={selectedNostrAuthor}
+                // setSelectedNostrAuthor={setSelectedNostrAuthor}
+                // putNostrKey={putNostrKey}
+                // putProcessedPost={putProcessedPost}
+                // putClassifier={putClassifier}
+                // markComplete={(postId: string) => markComplete(postId, 'nostr')}
+                // category={selectedTrainLabel}
+                // classifiers={classifiers}
+                // putClassifier={putClassifier}
+                // processedPosts={processedPosts}
+                // putProcessedPost={putProcessedPost}
+               />
+            </Suspense>
+            </Main>
+          }
+          path={[
+            '/',
+            '/posts',
+            '/posts/:category'
+          ]}
+        />
+
       </Routes>
     </div>
   );
 };
 
 export default App;
-
-
-
-//         <Route
-//           element={
-//             <Main
-//               navBarWidth={navBarWidth}
-//               isOpen={isOpen}
-//             >
-//             <Suspense
-//               fallback={
-//                 <div class='fade-in'>
-//                   <Heading>
-//                     <div>{selectedTrainLabel()}</div>
-//                   </Heading>
-//                   <div>fetching posts</div>
-//                 </div>
-//               }
-//             >
-//               <Posts
-//                 category={selectedTrainLabel}
-//                 setSelectedTrainLabel={setSelectedTrainLabel}
-//                 posts={posts}
-//                 classifiers={classifiers}
-//                 putClassifier={putClassifier}
-//                 processedPosts={processedPosts}
-//                 putProcessedPost={putProcessedPost}
-//                 applyPrediction={(post: any) => applyPrediction(post, selectedTrainLabel())}
-//                />
-//             </Suspense>
-//             </Main>
-//           }
-//           path={[
-//             '/',
-//             '/posts',
-//             '/posts/:category'
-//           ]}
-//         />

@@ -12,9 +12,7 @@ import Heading from './Heading'
 import PostTrain from './PostTrain'
 import { CgUserAdd } from 'solid-icons/cg'
 import { IoRemoveCircleOutline } from 'solid-icons/io'
-import {
-  NostrKey
-} from "./db-fixture";
+import { NostrKey } from "./db-fixture";
 
 const NostrPosts = (props: {
   selectedTrainLabel: any,
@@ -56,11 +54,14 @@ const NostrPosts = (props: {
 
   return (
     <main>
-      <Heading>
-        <div>
-          {props.selectedTrainLabel()} global feed
-        </div>
-      </Heading>
+      <div class="fade-in">
+        <Heading>
+          <div>
+            {(props.selectedTrainLabel() == '') ? 'nostr global feed' : ''}
+          </div>
+        </Heading>
+      </div>
+
       <Show when={props.selectedNostrAuthor() !== ''}>
         <div style={{'margin': '30px', 'display': 'flex', 'flex-direction': 'row', 'justify-content': 'space-around'}}>
           <Link.Root onClick={(event) => {
@@ -131,7 +132,7 @@ const NostrPosts = (props: {
                           mlText={post.mlText}
                           prediction={post.prediction}
                           docCount={post.docCount}
-                          markComplete={() => props.markComplete(post.id)}
+                          markComplete={() => props.markComplete(post.mlText)}
                         />
                       </Collapsible.Trigger>
                     </>}

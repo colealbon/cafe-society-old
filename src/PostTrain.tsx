@@ -14,7 +14,7 @@ const PostTrain = (props: {
   // eslint-disable-next-line no-unused-vars
   train: (mlClass: string) => any
 }) => {
-  const handleComplete = () => props.markComplete()
+  // const handleComplete = () => props.markComplete( )
   const handleTrain = (mlClass: string) => {
     props.train(mlClass)
   }
@@ -31,13 +31,13 @@ const PostTrain = (props: {
     <div style={{"display": "flex", "flex-direction": 'row', 'justify-content':'space-around', 'width': '300px'}}>
     <div>{suppressOdds.toFixed(2).replace('NaN', '-')}</div>
     <AiOutlineArrowDown class="collapsible__trigger-icon button" onclick={() => setTimeout(() => {
-        handleComplete()
+        props.markComplete()
         handleTrain('suppress')
         }, 300)
       }/>
     <Tooltip.Root>
       <Tooltip.Trigger  style={{'padding': 'unset'}}>
-        <Link.Root onClick={() => setTimeout(() => handleComplete(), 300)}>{props.trainLabel}</Link.Root>
+        <Link.Root onClick={() => setTimeout(() => props.markComplete() , 300)}>{props.trainLabel}</Link.Root>
       </Tooltip.Trigger>
       <Tooltip.Portal>
         <Tooltip.Content class="tooltip__content">
@@ -55,7 +55,7 @@ const PostTrain = (props: {
       <AiOutlineArrowUp
         class="collapsible__trigger-icon"
         onclick={() => setTimeout(() => {
-            handleComplete()
+            props.markComplete()
             handleTrain('promote')
           }, 300)
       }/>
