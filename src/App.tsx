@@ -319,8 +319,8 @@ const App = () => {
     await db.trainlabels.put(newTrainLabel)
   }
 
-  const removeTrainLabel = async (categoryToRemove: TrainLabel) => {
-    await db.trainlabels.where('id').equals(categoryToRemove?.id).delete()
+  const removeTrainLabel = async (trainLabelToRemove: TrainLabel) => {
+    await db.trainlabels.where('id').equals(trainLabelToRemove?.id).delete()
   }
 
   const train = (params: {

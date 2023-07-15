@@ -22,9 +22,9 @@ import { TrainLabel } from './db-fixture'
 const TrainLabels = (props: {
   trainLabels: TrainLabel[],
   // eslint-disable-next-line no-unused-vars
-  putTrainLabel: (category: TrainLabel) => void,
+  putTrainLabel: (trainLabel: TrainLabel) => void,
   // eslint-disable-next-line no-unused-vars
-  removeTrainLabel: (category: TrainLabel) => void
+  removeTrainLabel: (trainLabel: TrainLabel) => void
 }) => {
 
   const group = createFormGroup({
@@ -74,7 +74,7 @@ const TrainLabels = (props: {
   const handleToggleChecked = (id: string) => {
 
     const valuesForSelectedTrainLabel = props.trainLabels
-    .find(categoryEdit => categoryEdit['id'] === id)
+    .find(labelEdit => labelEdit['id'] === id)
 
     if (valuesForSelectedTrainLabel?.id == undefined) {
       return
@@ -90,22 +90,15 @@ const TrainLabels = (props: {
     props.putTrainLabel(newValueObj)
   }
 
-  // const handleEraseClick = () => {
-  //   group.setValue({
-  //       id:'',
-  //       checked:true
-  //     })
-  // }
-
   return (
   <div class='fade-in'>
     <div>
       <Heading>
-        <div>{'Edit TrainLabels'}</div>
+        <div>{'Edit Train Labels'}</div>
       </Heading>
     </div>
     <form onSubmit={onSubmit}>
-      <label for="id">category</label>
+      <label for="id">train label</label>
       <TextInput name="id" control={group.controls.id} />
       <div />
       <Switch.Root
@@ -125,7 +118,7 @@ const TrainLabels = (props: {
   <div>
   <h4 class="text-muted">TrainLabels</h4>
   <For each={props.trainLabels}>
-    {(category) => (
+    {(trainLabel) => (
       <div style={{
         'width': '100%',
         'display': 'flex',
@@ -144,15 +137,15 @@ const TrainLabels = (props: {
           }}>
         <Link.Root onClick={(event) => {
             event.preventDefault()
-            props.removeTrainLabel(category)
+            props.removeTrainLabel(trainLabel)
           }}>
             <VsTrash />
           </Link.Root>
         </div>
         <Switch.Root
           class="switch"
-          defaultChecked={category.checked}
-          onClick={() => handleToggleChecked(category.id)}
+          defaultChecked={trainLabel.checked}
+          onClick={() => handleToggleChecked(trainLabel.id)}
         />
         <div style={
         {
@@ -165,9 +158,9 @@ const TrainLabels = (props: {
         }}>
         <Link.Root onClick={(event) => {
           event.preventDefault()
-          handleKeyClick(category.id)
+          handleKeyClick(trainLabel.id)
         }}>
-          {category.id || ''}
+          {trainLabel.id || ''}
         </Link.Root>
       </div>
       </div>

@@ -59,7 +59,7 @@ const NavBar = (props: {
       <Link.Root href="/contribute">Contribute</Link.Root>
       <Link.Root href="/cors">Cors Proxies</Link.Root>
       <Link.Root href="/nostrrelays">Nostr Relays</Link.Root>
-      <Link.Root href="/labels">Train Labels</Link.Root>
+      <Link.Root href="/trainlabels">Train Labels</Link.Root>
       <Link.Root href="/classifiers">Classifiers</Link.Root>
     </div>
     </>
