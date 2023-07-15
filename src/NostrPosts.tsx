@@ -57,7 +57,7 @@ const NostrPosts = (props: {
       <div class="fade-in">
         <Heading>
           <div>
-            {(props.selectedTrainLabel() == '') ? 'nostr global feed' : ''}
+            {'nostr global feed'}
           </div>
         </Heading>
       </div>

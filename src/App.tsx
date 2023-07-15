@@ -67,7 +67,7 @@ db.on("populate", () => {
   db.nostrrelays.bulkAdd(defaultNostrRelays as NostrRelay[]);
   db.feeds.bulkAdd(defaultFeeds as Feed[]);
   db.corsproxies.bulkAdd(defaultCorsProxies as CorsProxy[]);
-  db.trainLabels.bulkAdd(defaultTrainLabels as TrainLabel[]);
+  db.trainlabels.bulkAdd(defaultTrainLabels as TrainLabel[]);
   db.classifiers.bulkAdd(defaultClassifiers as Classifier[]);
   db.processedposts.bulkAdd(defaultProcessed as ProcessedPost[]);
 });
@@ -230,7 +230,7 @@ const parsePosts = (postsXML: any[]) => {
 
 const App = () => {
   const [isOpen, setIsOpen] = createStoredSignal('isNavbarOpen', false);
-  const trainLabels = createDexieArrayQuery(() => db.trainLabels.toArray());
+  const trainLabels = createDexieArrayQuery(() => db.trainlabels.toArray());
   const nostrRelays = createDexieArrayQuery(() => db.nostrrelays.toArray());
   const checkedNostrRelays = createDexieArrayQuery(() => db.nostrrelays
     .filter(relay => relay.checked === true)
@@ -316,11 +316,11 @@ const App = () => {
   }
 
   const putTrainLabel = async (newTrainLabel: TrainLabel) => {
-    await db.trainLabels.put(newTrainLabel)
+    await db.trainlabels.put(newTrainLabel)
   }
 
   const removeTrainLabel = async (categoryToRemove: TrainLabel) => {
-    await db.trainLabels.where('id').equals(categoryToRemove?.id).delete()
+    await db.trainlabels.where('id').equals(categoryToRemove?.id).delete()
   }
 
   const train = (params: {
@@ -343,7 +343,6 @@ const App = () => {
       thresholdSuppressDocCount: '10',
       thresholdPromoteDocCount: '10'
     }
-    console.log(newClassifierEntry)
     putClassifier(newClassifierEntry)
   }
 
@@ -370,7 +369,6 @@ const App = () => {
   createEffect(() => {
     const feedsForTrainLabel = checkedFeeds
       .filter((feed) => {
-        console.log(selectedTrainLabel())
         return selectedTrainLabel() === '' || feed.trainLabels.indexOf(selectedTrainLabel()) !== -1
       })
       .map((feed: Feed) => feed.id)
@@ -397,14 +395,19 @@ const App = () => {
         kinds: [ eventKind.text ]
       }
       const maxPosts = `${paramsObj.nostrAuthor}` == '' ? 100 : 100
-      const ignoreAuthor = paramsObj.ignore
       const winkClassifier = WinkClassifier()
       winkClassifier.definePrepTasks( [ prepTask ] );
       winkClassifier.defineConfig( { considerOnlyPresence: true, smoothingFactor: 0.5 } );
       const classifierModel: string = classifiers.find((classifierEntry: any) => classifierEntry?.id == 'nostr')?.model || ''
-      if (paramsObj.classifier != '') {
+      if (classifierModel != '') {
         winkClassifier.importJSON(classifierModel)
       }
+      try {
+        winkClassifier.consolidate()
+      } catch (error) {
+        console.log(error)
+      }
+
       fetcher.fetchLatestEvents(
         [...paramsObj.nostrRelayList],
         filterOptions,
@@ -415,7 +418,7 @@ const App = () => {
         resolve(
           allThePosts
           .filter((nostrPost: any) => `${nostrPost.mlText}`.replace(' ','') != '')
-          .filter((nostrPost: any) => !ignoreAuthor.find((ignoreKey: {publicKey: string}) => ignoreKey.publicKey == nostrPost.pubkey))
+          .filter((nostrPost: any) => !ignoreNostrKeys.find((ignoreKey: {publicKey: string}) => ignoreKey.publicKey == nostrPost.pubkey))
           .map((nostrPost: any) => prepNostrPost(nostrPost))
           .filter((nostrPost: any) => {
             return processedNostrPosts?.indexOf(nostrPost.mlText) == -1
@@ -437,7 +440,6 @@ const App = () => {
     if (paramsObj.feedsForTrainLabel.length < 1) {
       return
     }
-    console.log(paramsObj)
     return new Promise((resolve) => {
       const fetchQueue: any[] = []
       paramsObj.feedsForTrainLabel.forEach((feed: Feed) => {
@@ -454,6 +456,13 @@ const App = () => {
           }
         }))
       })
+      const winkClassifier = WinkClassifier()
+      winkClassifier.definePrepTasks( [ prepTask ] );
+      winkClassifier.defineConfig( { considerOnlyPresence: true, smoothingFactor: 0.5 } );
+      const classifierModel: string = classifiers.find((classifierEntry: any) => classifierEntry?.id == 'nostr')?.model || ''
+      if (classifierModel != '') {
+        winkClassifier.importJSON(classifierModel)
+      }
       Promise.all(fetchQueue)
       .then(fetchedPosts => parsePosts(fetchedPosts))
       // .then((parsedPosts: any) => resolve(parsedPosts))
@@ -480,7 +489,10 @@ const App = () => {
           }
           return processedPostsForFeedLink.indexOf(postItem?.mlText) == -1
         })
-        // .map((post) => applyPrediction(post, )))
+        .map((post: any) => applyPrediction({
+          post: post,
+          classifier: winkClassifier
+        }))
         )
       })
     })
@@ -649,19 +661,6 @@ const App = () => {
                 markComplete={(postId: string, feedId: string) => markComplete(postId, feedId)}
                 rssPosts={rssPosts()}
                 setSelectedTrainLabel={setSelectedTrainLabel}
-                // nostrPosts={nostrPosts}
-                // navBarWidth={navBarWidth}
-                // selectedNostrAuthor={selectedNostrAuthor}
-                // setSelectedNostrAuthor={setSelectedNostrAuthor}
-                // putNostrKey={putNostrKey}
-                // putProcessedPost={putProcessedPost}
-                // putClassifier={putClassifier}
-                // markComplete={(postId: string) => markComplete(postId, 'nostr')}
-                // category={selectedTrainLabel}
-                // classifiers={classifiers}
-                // putClassifier={putClassifier}
-                // processedPosts={processedPosts}
-                // putProcessedPost={putProcessedPost}
                />
             </Suspense>
             </Main>

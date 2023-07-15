@@ -22,9 +22,13 @@ const PostTrain = (props: {
   let promoteOdds = 0.0
   let suppressOdds = 0.0
 
-  if (!props.prediction?.find((predictionEntry: any) => predictionEntry[0] == 'unknown')) {
-    promoteOdds = 0.0 + props.prediction?.find((predictionEntry: any) => predictionEntry[0] == 'promote')[1]
-    suppressOdds = 0.0 + props.prediction?.find((predictionEntry: any) => predictionEntry[0]  == 'suppress')[1]
+  try {
+    if (!props.prediction?.find((predictionEntry: any) => predictionEntry[0] == 'unknown')) {
+      promoteOdds = 0.0 + props.prediction?.find((predictionEntry: any) => predictionEntry[0] == 'promote')[1]
+      suppressOdds = 0.0 + props.prediction?.find((predictionEntry: any) => predictionEntry[0]  == 'suppress')[1]
+    }
+  } catch (error) {
+    console.log(error)
   }
 
   return(

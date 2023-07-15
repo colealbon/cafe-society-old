@@ -44,7 +44,7 @@ export class DbFixture extends Dexie {
   nostrkeys!: Table<NostrKey>;
   feeds!: Table<Feed>;
   corsproxies!: Table<CorsProxy>;
-  trainLabels!: Table<TrainLabel>;
+  trainlabels!: Table<TrainLabel>;
   classifiers!: Table<Classifier>;
   processedposts!: Table<ProcessedPost>;
   nostrrelays!: Table<NostrRelay>;
@@ -54,7 +54,7 @@ export class DbFixture extends Dexie {
       nostrkeys: "&publicKey",
       feeds: "&id, checked, *trainLabels",
       corsproxies: "&id",
-      trainLabels: "&id",
+      trainlabels: "&id",
       classifiers: "&id",
       processedposts: "&id",
       nostrrelays: "&id"

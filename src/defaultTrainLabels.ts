@@ -1,4 +1,4 @@
-const defaultCategories = [
+const defaultTrainLabels= [
   { "id": "maritime", "checked": false },
   { "id": "work", "checked": false },
   { "id": "science", "checked": true },
@@ -11,4 +11,4 @@ const defaultCategories = [
   { "id": "variety", "checked": false },
   { "id": "medicine", "checked": false }
 ]
-export default defaultCategories
+export default defaultTrainLabels
