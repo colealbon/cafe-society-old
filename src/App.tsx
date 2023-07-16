@@ -402,11 +402,6 @@ const App = () => {
       if (classifierModel != '') {
         winkClassifier.importJSON(classifierModel)
       }
-      try {
-        winkClassifier.consolidate()
-      } catch (error) {
-        console.log(error)
-      }
 
       fetcher.fetchLatestEvents(
         [...paramsObj.nostrRelayList],
@@ -421,7 +416,7 @@ const App = () => {
           .filter((nostrPost: any) => !ignoreNostrKeys.find((ignoreKey: {publicKey: string}) => ignoreKey.publicKey == nostrPost.pubkey))
           .map((nostrPost: any) => prepNostrPost(nostrPost))
           .filter((nostrPost: any) => {
-            return processedNostrPosts?.indexOf(nostrPost.mlText) == -1
+            return [processedNostrPosts].flat()?.indexOf(nostrPost.mlText) == -1
           })
           .map((post: any) => applyPrediction({
             post: post,
