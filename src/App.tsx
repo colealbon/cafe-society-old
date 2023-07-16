@@ -103,14 +103,17 @@ const prepTask = function ( text: string ) {
 const prepNostrPost = (post: any) => {
   return {
     mlText: prepTask(convert(
-      `${post.content}`.replace(/\d+/g, ''),
+      `${post.content}`
+      .replace(/\d+/g, '')
+      .replace(/#/g, ''),
       {
         ignoreLinks: true,
         ignoreHref: true,
         ignoreImage: true,
         linkBrackets: false
       }
-    ))
+    )
+    )
     .filter((word: string) => word.length < 30)
     .filter((word: string) => word!='nostr')
     .filter((word: string) => word!='vmess')

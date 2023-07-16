@@ -23,12 +23,14 @@ const PostTrain = (props: {
   let suppressOdds = 0.0
 
   try {
-    if (!props.prediction?.find((predictionEntry: any) => predictionEntry[0] == 'unknown')) {
+    if (![props.prediction]?.find((predictionEntry: any) => predictionEntry[0] == 'unknown')) {
       promoteOdds = 0.0 + props.prediction?.find((predictionEntry: any) => predictionEntry[0] == 'promote')[1]
       suppressOdds = 0.0 + props.prediction?.find((predictionEntry: any) => predictionEntry[0]  == 'suppress')[1]
     }
   } catch (error) {
-    console.log(error)
+    if (error == undefined) {
+      console.log('unreachable -> probably not trained enough at this point and new users would get flooded with logs if we write out the error here')
+    }
   }
 
   return(
