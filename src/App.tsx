@@ -418,6 +418,7 @@ const App = () => {
       )
       .then((allThePosts: any) => {
         const processedNostrPosts = processedPosts.find((processedPostsEntry) => processedPostsEntry?.id == 'nostr')?.processedPosts
+        const suppressOdds = classifiers.find((classifierEntry) => classifierEntry?.id == 'nostr')?.thresholdSuppressOdds
         resolve(
           allThePosts
           .filter((nostrPost: any) => `${nostrPost.mlText}`.replace(' ','') != '')
@@ -430,9 +431,8 @@ const App = () => {
             post: post,
             classifier: winkClassifier
           }))
-          .map((post: any) => {
-            // console.log(Object.fromEntries(post.prediction))
-            return post
+          .filter((post: any) => {
+            return post.prediction.suppress < (suppressOdds || 0)
           })
         )
       })
@@ -476,6 +476,7 @@ const App = () => {
       Promise.all(fetchQueue)
       .then(fetchedPosts => parsePosts(fetchedPosts))
       .then((parsed: any[]) => {
+        const suppressOdds = classifiers.find((classifierEntry) => classifierEntry?.id == selectedTrainLabel())?.thresholdSuppressOdds
         resolve(parsed?.flat()
         .filter(post => `${post?.mlText}`.trim() != '')
         .map(post => {
@@ -501,6 +502,9 @@ const App = () => {
           post: post,
           classifier: winkClassifier
         }))
+        .filter((post: any) => {
+          return post.prediction.suppress < (suppressOdds || 0)
+        })
         )
       })
     })

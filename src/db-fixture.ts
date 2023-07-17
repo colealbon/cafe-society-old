@@ -11,8 +11,10 @@ export interface NostrKey {
 
 export interface Classifier {
   "id": string,
-  "thresholdSuppressDocCount": string,
-  "thresholdPromoteDocCount": string,
+  "thresholdSuppressDocCount"?: string,
+  "thresholdPromoteDocCount"?: string,
+  "thresholdSuppressOdds"?: string,
+  "thresholdPromoteOdds"?: string,
   "model": string
 }
 

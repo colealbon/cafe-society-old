@@ -30,7 +30,8 @@ const Classifiers = (props: {
     id: createFormControl(""),
     model: createFormControl(""),
     thresholdSuppressDocCount: createFormControl(''),
-    thresholdPromoteDocCount: createFormControl('')
+    thresholdPromoteDocCount: createFormControl(''),
+    thresholdSuppressOdds: createFormControl('')
   });
 
   const onSubmit = async (event) => {
@@ -44,7 +45,8 @@ const Classifiers = (props: {
         id:'',
         model:'',
         thresholdSuppressDocCount: '',
-        thresholdPromoteDocCount: ''
+        thresholdPromoteDocCount: '',
+        thresholdSuppressOdds: ''
       }, group.value))
       .filter(([, value]) => `${value}` !== '')
     )]
@@ -54,7 +56,8 @@ const Classifiers = (props: {
           id: '',
           model: '',
           thresholdSuppressDocCount: '',
-          thresholdPromoteDocCount: ''
+          thresholdPromoteDocCount: '',
+          thresholdSuppressOdds: ''
         },
         ...newClassifier
       }
@@ -65,7 +68,8 @@ const Classifiers = (props: {
       id:'',
       model:'',
       thresholdSuppressDocCount: '',
-      thresholdPromoteDocCount: ''
+      thresholdPromoteDocCount: '',
+      thresholdSuppressOdds: ''
     })
   };
 
@@ -76,7 +80,8 @@ const Classifiers = (props: {
       id:'',
       model: '',
       thresholdSuppressDocCount: '',
-      thresholdPromoteDocCount: ''
+      thresholdPromoteDocCount: '',
+      thresholdSuppressOdds: ''
     })
   }
 
@@ -87,7 +92,8 @@ const Classifiers = (props: {
         id:'',
         model:'',
         thresholdSuppressDocCount: '',
-        thresholdPromoteDocCount: ''
+        thresholdPromoteDocCount: '',
+        thresholdSuppressOdds: ''
       }, valuesForSelectedClassifier))
   }
 
@@ -111,15 +117,17 @@ const Classifiers = (props: {
       <label for="id">label</label>
       <TextInput name="id" control={group.controls.id} />
       <div />
-
-      <label for="thresholdSuppressDocCount">Threshold Suppress Doc Count</label>
-      <TextInput name="thresholdSuppressDocCount" control={group.controls.thresholdSuppressDocCount} />
+      <label for="thresholdSuppressOdds">Threshold Suppress Odds</label>
+      <TextInput name="thresholdSuppressOdds" control={group.controls.thresholdSuppressOdds} />
       <div />
-
-      <label for="thresholdPromoteDocCount">Threshold Promote Doc Count</label>
-      <TextInput name="thresholdPromoteDocCount" control={group.controls.thresholdPromoteDocCount} />
-      <div />
-
+      <div style={{'display': 'none'}}>
+        <label for="thresholdSuppressDocCount">Threshold Suppress Doc Count</label>
+        <TextInput name="thresholdSuppressDocCount" control={group.controls.thresholdSuppressDocCount} />
+        <div />
+        <label for="thresholdPromoteDocCount">Threshold Promote Doc Count</label>
+        <TextInput name="thresholdPromoteDocCount" control={group.controls.thresholdPromoteDocCount} />
+        <div />
+      </div>
       <label for="Model">Bayes Model</label>
       <TextInput name="model" control={group.controls.model} />
       <div>

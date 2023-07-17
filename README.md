@@ -24,8 +24,39 @@ A wet pile of dregs can smell pretty bad, but if you pick out the putrid stuff a
 
 ## todo
 
-30402 event kind to advertise trained models
+30402 event kind to advertise trained models?
 Data Vending Machines NIP (kind 68001) which replies with the transcript (kind 68002)
 move processed posts from fetcher parameter to postsReport
 move classifier from fetcher parameter to posts report
 move ignore from fetcherParameter to posts report
+
+## business/incentives (mpex/trilema inspired subscription model)
+
+cafe-society.news will offer ability to assemble, advertise and pay for subscriptions to updated models via nostr messages.
+
+### draft
+
+trainer will generate/configure a public key for each model they use.  Each classifier/model in the settings will have at least one of classifier json, keypair, or public key.  Until we determine otherwise, different models can use the same key.
+
+### Flow Control
+
+- if the classifier has only a public key, the sofware will know to fetch and decrypt the model along with nostrposts.
+
+- If the classifier has a private key, software will periodically encrypt and post the ML model to noster during/after a training session.  
+
+- if the classifier has no keys affiliated, then local storage is used and copy paste is still a message medium.
+
+### Purchases:
+reader/subscriber sends zaps to trainer with the reader/consumer public key in a memo  
+
+periodically the trainer will encrypt new model to the subscribers and post encrypted model to nostr.  
+
+reader/subscriber will fetch new models on nostr as they fetch their other posts.
+
+### Sales,Classifieds/Discovery:
+models be posted to (probably 30402) event for classifieds along with the results of wink stats() and an address that is monitored for subscription payments.  
+
+It may also be a good idea to offer a live service to reply with wink metrics for some sample text. This will help the reader find out if the classifier is relevant before spending money.
+
+wtf is wink stats()?
+https://winkjs.org/wink-naive-bayes-text-classifier/NaiveBayesTextClassifier.html#metrics
