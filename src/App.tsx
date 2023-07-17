@@ -223,9 +223,14 @@ const parsePosts = (postsXML: any[]) => {
   const parseQueue: any[] = []
   postsXML.forEach(xmlEntry => {
     parseQueue.push(new Promise(resolve => {
-      const content = parser.parse(xmlEntry.data)
-      const parsed = content.rss ? parseRSS(content) : parseAtom(content)
-      resolve(parsed)
+      try {
+        const content = parser.parse(xmlEntry.data)
+        const parsed = content.rss ? parseRSS(content) : parseAtom(content)
+        resolve(parsed)
+      } catch (error) {
+        console.log(error)
+        resolve([])
+      }
     }))
   })
   return Promise.all(parseQueue)
@@ -444,10 +449,14 @@ const App = () => {
         fetchQueue.push(new Promise((resolve) => {
           try {
             paramsObj.corsProxies?.slice().forEach((corsProxy: any) => {
-              axios.get(`${corsProxy}${feed}`)
-              .then(response => {
-                resolve(response)
-              })
+              try {
+                axios.get(`${corsProxy}${feed}`)
+                .then(response => {
+                  resolve(response)
+                })
+              } catch(error) {
+                console.log(`${corsProxy}${feed} failed`)
+              }
             })
           } catch (error) {
             resolve('')
@@ -457,15 +466,13 @@ const App = () => {
       const winkClassifier = WinkClassifier()
       winkClassifier.definePrepTasks( [ prepTask ] );
       winkClassifier.defineConfig( { considerOnlyPresence: true, smoothingFactor: 0.5 } );
-      const classifierModel: string = classifiers.find((classifierEntry: any) => classifierEntry?.id == 'nostr')?.model || ''
+      const classifierModel: string = classifiers.find((classifierEntry: any) => classifierEntry?.id == selectedTrainLabel())?.model || ''
       if (classifierModel != '') {
         winkClassifier.importJSON(classifierModel)
       }
       Promise.all(fetchQueue)
       .then(fetchedPosts => parsePosts(fetchedPosts))
-      // .then((parsedPosts: any) => resolve(parsedPosts))
       .then((parsed: any[]) => {
-        //const processedPostsForTrainLabel = processedPosts.find((processedPostsEntry) => processedPostsEntry?.id == selectedTrainLabel())?.processedPosts
         resolve(parsed?.flat()
         .filter(post => `${post?.mlText}`.trim() != '')
         .map(post => {

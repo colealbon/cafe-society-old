@@ -25,6 +25,7 @@ A wet pile of dregs can smell pretty bad, but if you pick out the putrid stuff a
 ## todo
 
 30402 event kind to advertise trained models
+Data Vending Machines NIP (kind 68001) which replies with the transcript (kind 68002)
 move processed posts from fetcher parameter to postsReport
 move classifier from fetcher parameter to posts report
 move ignore from fetcherParameter to posts report

@@ -92,7 +92,7 @@ const defaultFeeds =
   },
   {
     "id": "https://rt.com/rss",
-    "checked": true,
+    "checked": false,
     "trainLabels": ["world"]
   },
   {
