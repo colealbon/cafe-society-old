@@ -19,23 +19,9 @@ const PostTrain = (props: {
     props.train(mlClass)
   }
 
-  let promoteOdds = 0.0
-  let suppressOdds = 0.0
-
-  try {
-    if (![props.prediction]?.find((predictionEntry: any) => predictionEntry[0] == 'unknown')) {
-      promoteOdds = 0.0 + props.prediction?.find((predictionEntry: any) => predictionEntry[0] == 'promote')[1]
-      suppressOdds = 0.0 + props.prediction?.find((predictionEntry: any) => predictionEntry[0]  == 'suppress')[1]
-    }
-  } catch (error) {
-    if (error == undefined) {
-      console.log('unreachable -> probably not trained enough at this point and new users would get flooded with logs if we write out the error here')
-    }
-  }
-
   return(
     <div style={{"display": "flex", "flex-direction": 'row', 'justify-content':'space-around', 'width': '300px'}}>
-    <div>{suppressOdds.toFixed(2).replace('NaN', '-')}</div>
+    <div>{(0.0 + props.prediction['suppress'] || 0.0).toFixed(2)}</div>
     <AiOutlineArrowDown class="collapsible__trigger-icon button" onclick={() => setTimeout(() => {
         props.markComplete()
         handleTrain('suppress')
@@ -65,7 +51,13 @@ const PostTrain = (props: {
             handleTrain('promote')
           }, 300)
       }/>
-      <div>{promoteOdds.toFixed(2).replace('NaN', '-')}</div>
+      <div>
+        {
+          (0.0 + props.prediction['promote'] || 0.0)
+          .toFixed(2)
+          .replace('NaN', '-')
+        }
+      </div>
       <div/>
       <div/>
     </div>

@@ -132,7 +132,7 @@ const applyPrediction = (params: {
     if (docCount > 2) {
       params.classifier.consolidate()
     }
-    const prediction = params.classifier.computeOdds(params.post?.mlText)
+    const prediction = Object.fromEntries(params.classifier.computeOdds(params.post?.mlText))
     const postWithPrediction = {
       ...params.post,
       ...{
@@ -430,7 +430,10 @@ const App = () => {
             post: post,
             classifier: winkClassifier
           }))
-          .reverse()
+          .map((post: any) => {
+            // console.log(Object.fromEntries(post.prediction))
+            return post
+          })
         )
       })
     })
@@ -501,6 +504,17 @@ const App = () => {
         )
       })
     })
+  }
+
+  const handleFeedToggleChecked = (id: string) => {
+    const valuesForSelectedFeed = feeds
+    .find(feed => feed['id'] === id)
+
+    const newValueObj = {
+        ...valuesForSelectedFeed
+      , checked: !valuesForSelectedFeed?.checked
+    }
+    putFeed({...newValueObj} as Feed)
   }
 
   return (
@@ -605,9 +619,10 @@ const App = () => {
           >
             <Feeds
               feeds={feeds}
-              putFeed={putFeed}
+              putFeed={() => putFeed}
               removeFeed={removeFeed}
               trainLabels={trainLabels}
+              handleFeedToggleChecked={(id: string) => handleFeedToggleChecked(id)}
             />
           </Main>
         } path='/feeds'

@@ -8,7 +8,6 @@ import {
 } from "@kobalte/core";
 import {
   For,
-  createEffect,
   createSignal,
   Show
 } from 'solid-js';
@@ -30,11 +29,11 @@ const Feeds = (props: {
     putFeed: (feed: Feed) => void,
     // eslint-disable-next-line no-unused-vars
     removeFeed: (feed: Feed) => void
+    handleFeedToggleChecked: any
   }) => {
   const [trainLabelValues, setTrainLabelValues] = createSignal([]);
   const filter = createFilter({ sensitivity: "base" });
   const [options, setOptions] = createSignal<string[]>();
-  const [ newFeed , setNewFeed ] = createSignal({});
   const onOpenChange = (isOpen: boolean, triggerMode?: Combobox.ComboboxTriggerMode) => {
     // Show all options on ArrowDown/ArrowUp and button click.
     if (isOpen && triggerMode === "manual") {
@@ -42,7 +41,7 @@ const Feeds = (props: {
     }
   };
   const onInputChange = (value: string) => {
-    setOptions(options.filter(option => filter.contains(option, value)));
+    setOptions(options()?.filter(option => filter.contains(option, value)));
   };
   const group = createFormGroup({
     id: createFormControl(""),
@@ -52,7 +51,6 @@ const Feeds = (props: {
 
   const onSubmit = async (event: any) => {
     event.preventDefault()
-    console.log(group.value)
     if (group.isSubmitted) {
       console.log('already submitted')
       return;
@@ -85,28 +83,6 @@ const Feeds = (props: {
     setTrainLabelValues([])
   };
 
-  const handleToggleChecked = (id: string) => {
-    const valuesForSelectedFeed = props.feeds
-    .find(feed => feed['id'] === id)
-    const newValueObj = (Object.assign(
-      {
-        ...valuesForSelectedFeed
-      },
-      {checked: !valuesForSelectedFeed?.checked}
-    ))
-    // props.putFeed(newValueObj)
-    setNewFeed(newValueObj)
-  }
-
-  createEffect(() => {
-    const theNewFeed = Object.assign({
-      id:'',
-      checked:true,
-      trainLabels: []
-    }, newFeed())
-    props.putFeed(theNewFeed)
-  })
-
   const handleKeyClick = (id: string) => {
     const valuesForSelectedFeed = props.feeds
       .find(feedEdit => feedEdit['id'] === id)
@@ -115,7 +91,7 @@ const Feeds = (props: {
         checked:true,
         trainLabels:[]
       }, valuesForSelectedFeed))
-    setTrainLabelValues(valuesForSelectedFeed?.trainLabels)
+    setTrainLabelValues(valuesForSelectedFeed?.trainLabels as string[])
   }
 
   return (
@@ -209,7 +185,11 @@ const Feeds = (props: {
                     <Switch.Root
                       class="switch"
                       defaultChecked={feed.checked}
-                      onClick={() => handleToggleChecked(feed.id)}
+                      onClick={() => {
+                        props.handleFeedToggleChecked(feed.id)
+                        alert('toggle does not work yet - DTMF/ATMF instead')
+                        alert('then give us some money:  https://getalby.com/p/cafe')
+                      }}
                     >
                       <Switch.Input class="switch__input" />
                       <Switch.Control class="switch__control">
