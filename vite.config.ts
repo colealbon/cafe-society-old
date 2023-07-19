@@ -12,9 +12,10 @@ export default defineConfig({
     UnoCSS(),
   ],
   server: {
-    port: 3000,
+    port: 8080,
     host: "localhost",
-    strictPort: true
+    strictPort: true,
+    https: true
   },
   optimizeDeps: {
     esbuildOptions: {

@@ -15,6 +15,7 @@ const NavBar = (props: {
   setClose: any;
   setSelectedTrainLabel: any;
   trainLabels: TrainLabel[];
+
 }) => {
   return (
   <>
@@ -55,6 +56,7 @@ const NavBar = (props: {
           </Link.Root>
       </div>
       <Link.Root href="/nostr">Nostr Keys</Link.Root>
+      <Link.Root href="/alby">Alby SignIn</Link.Root>
       <Link.Root href="/feeds">Feeds</Link.Root>
       <Link.Root href="/contribute">Contribute</Link.Root>
       <Link.Root href="/cors">Cors Proxies</Link.Root>

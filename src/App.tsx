@@ -48,6 +48,7 @@ import NostrRelays from './NostrRelays';
 import TrainLabels from './TrainLabels';
 import Classifiers from './Classifiers';
 import Heading from './Heading';
+import AlbySignIn from './AlbySignIn'
 import Contribute from './Contribute';
 import defaultNostrKeys from './defaultNostrKeys';
 import defaultNostrRelays from './defaultNostrRelays';
@@ -244,9 +245,14 @@ const App = () => {
     .filter(relay => relay.checked === true)
     .toArray()
     );
-    const [selectedTrainLabel, setSelectedTrainLabel] = createStoredSignal('selectedTrainLabel', '')
+  const [selectedTrainLabel, setSelectedTrainLabel] = createStoredSignal('selectedTrainLabel', '')
   const [selectedNostrAuthor, setSelectedNostrAuthor] = createStoredSignal('selectedNostrAuthor', '')
+  const [albyTokenReadInvoice, setAlbyTokenReadInvoice] = createStoredSignal('albyTokenReadInvoice', '')
+
+  const [albyCodeVerifier, setAlbyCodeVerifier] = createStoredSignal('albyCodeVerifier', '')
+  const [albyCode, setAlbyCode] = createStoredSignal('albyCode', '')
   const [nostrQuery, setNostrQuery] = createSignal('')
+
   const [fetchRssParams, setFetchRssParams] = createSignal('')
 
   const ignoreNostrKeys = createDexieArrayQuery(() => db.nostrkeys
@@ -432,7 +438,7 @@ const App = () => {
             classifier: winkClassifier
           }))
           .filter((post: any) => {
-            return post.prediction.suppress < (suppressOdds || 0)
+            return (post.prediction?.suppress || 0) <= (suppressOdds || 0)
           })
         )
       })
@@ -503,7 +509,7 @@ const App = () => {
           classifier: winkClassifier
         }))
         .filter((post: any) => {
-          return post.prediction.suppress < (suppressOdds || 0)
+          return (post.prediction?.suppress || 0)  <= (suppressOdds || 0)
         })
         )
       })
@@ -540,7 +546,7 @@ const App = () => {
         }}
         isOpen={isOpen}
         trainLabels={trainLabels.filter(trainLabel => trainLabel.checked)}
-        setSelectedTrainLabel={setSelectedTrainLabel}
+        setSelectedTrainLabel={(trainLabel: string) => setSelectedTrainLabel(trainLabel)}
        />
       <Routes>
         <Route element={
@@ -616,6 +622,20 @@ const App = () => {
         } path='/classifiers'
         />
         <Route element={<Main navBarWidth={navBarWidth} isOpen={isOpen}><div><Contribute /></div></Main>} path='/contribute' />
+        <Route element={
+          <Main navBarWidth={navBarWidth} isOpen={isOpen}>
+            <div>
+              <AlbySignIn
+                albyCodeVerifier={albyCodeVerifier}
+                setAlbyCodeVerifier={setAlbyCodeVerifier}
+                albyCode={albyCode}
+                setAlbyCode={setAlbyCode}
+                albyTokenReadInvoice={albyTokenReadInvoice}
+                setAlbyTokenReadInvoice={setAlbyTokenReadInvoice}
+              />
+            </div>
+          </Main>
+        } path='/alby' />
         <Route element={
           <Main
             navBarWidth={navBarWidth}

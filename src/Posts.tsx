@@ -32,48 +32,7 @@ const Posts = (props: {
   rssPosts: any,
   markComplete: any
 }) => {
-//   const [classifier, setClassifier] = createSignal(WinkClassifier());
-//   const [classifierJSON, setClassifierJSON] = createSignal('')
-//   const [processedPostsForSession, setProcessedPostsForSession] = createSignal([])
-//   createEffect(() => {
-//     const classifierJSON = classifier().exportJSON()
-//     setClassifierJSON(classifierJSON)
-//   })
-//     const applyPrediction = (post: any, classifierJSON: string) => {
-//     let winkClassifier = WinkClassifier()
-//     const prepTask = function ( text: string ) {
-//       const tokens: string[] = [];
-//       nlp.readDoc(text)
-//         .tokens()
-//         // Use only words ignoring punctuations etc and from them remove stop words
-//         .filter( (t: any) => ( t.out(its.type) === 'word' && !t.out(its.stopWordFlag) ) )
-//         // Handle negation and extract stem of the word
-//         .each( (t: any) => tokens.push( (t.out(its.negationFlag)) ? '!' + t.out(its.stem) : t.out(its.stem) ) );
-//       return tokens;
-//     };
-//     winkClassifier.definePrepTasks( [ prepTask ] );
-//     winkClassifier.defineConfig( { considerOnlyPresence: true, smoothingFactor: 0.5 } );
-//     winkClassifier.importJSON(classifierJSON)
-//     try {
-//       const docCount = Object.values(winkClassifier.stats().labelWiseSamples).reduce((val, runningTotal: any) => val as number + runningTotal)
-//       if (docCount > 2) {
-//         winkClassifier.consolidate()
-//       }
-//       const prediction = winkClassifier.computeOdds(post?.mlText)
-//       const postWithPrediction = {
-//         ...post,
-//         ...{
-//           'prediction': prediction,
-//           'docCount': docCount
-//         }
-//       }
-//       return postWithPrediction
-//     } catch (error) {
-//       if (error != null) {
-//         return post
-//       }
-//     }
-//   }
+
 createEffect(() => {
   try {
     if (`${useParams().category}` === 'undefined') {

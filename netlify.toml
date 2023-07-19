@@ -4,9 +4,9 @@
   publish = "dist"
 
 [[redirects]]
-  from = "/*"
+  from = "http://localhost/*"
   status = 200
-  to = "/index.html"
+  to = "https://localhost/index.html"
 
 [[headers]]
   for = "/"
