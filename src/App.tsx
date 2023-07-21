@@ -1,4 +1,5 @@
 import { convert } from 'html-to-text'
+import {nip19} from 'nostr-tools'
 
 import {
   createSignal,
@@ -50,6 +51,7 @@ import Classifiers from './Classifiers';
 import Heading from './Heading';
 import AlbySignIn from './AlbySignIn'
 import Contribute from './Contribute';
+import Subscribers from './Subscribers';
 import defaultNostrKeys from './defaultNostrKeys';
 import defaultNostrRelays from './defaultNostrRelays';
 import defaultFeeds from './defaultFeeds';
@@ -248,7 +250,6 @@ const App = () => {
   const [selectedTrainLabel, setSelectedTrainLabel] = createStoredSignal('selectedTrainLabel', '')
   const [selectedNostrAuthor, setSelectedNostrAuthor] = createStoredSignal('selectedNostrAuthor', '')
   const [albyTokenReadInvoice, setAlbyTokenReadInvoice] = createStoredSignal('albyTokenReadInvoice', '')
-
   const [albyCodeVerifier, setAlbyCodeVerifier] = createStoredSignal('albyCodeVerifier', '')
   const [albyCode, setAlbyCode] = createStoredSignal('albyCode', '')
   const [nostrQuery, setNostrQuery] = createSignal('')
@@ -272,6 +273,8 @@ const App = () => {
     setNostrQuery(newQuery)
   })
   const [nostrPosts] = createResource(nostrQuery, fetchNostrPosts);
+  const [albyIncomingInvoices] = createResource(albyTokenReadInvoice, fetchAlbyInvoices)
+
   const [rssPosts] = createResource(fetchRssParams, fetchRssPosts);
   const putNostrRelay = async (newNostrRelay: NostrRelay) => {
     await db.nostrrelays.put(newNostrRelay)
@@ -394,6 +397,23 @@ const App = () => {
     }))
   })
 
+  function fetchAlbyInvoices(albyTokenReadInvoice: string) {
+    const axiosForAlby = axios.create({
+      baseURL: 'https://api.getalby.com'
+    });
+    axiosForAlby.defaults.headers.common['Authorization'] = albyTokenReadInvoice;
+    return axiosForAlby.get(`/invoices/incoming`)
+    .then(result => [...result.data]
+      .filter((invoice: any) => `${invoice.comment}` != '')
+      .filter((invoice: any) => invoice.comment != null)
+      // the line below is where you would filter by amount paid, etc.
+      .reduce((comment: string[], invoice: any) => Array.from(new Set([...comment, invoice.comment])), [])
+      .map((comment: string) => nip19.decode(comment))
+      .filter((npub: {type: String, data: any}) => npub.type === 'npub')
+      .map((npub: {type: String, data: any}) => npub.data)
+    )
+  }
+
   function fetchNostrPosts(params: string) {
     return new Promise((resolve) => {
       const paramsObj = JSON.parse(params)
@@ -402,11 +422,11 @@ const App = () => {
       }
       const filterOptions = `${paramsObj.nostrAuthor}` != '' ?
       {
-        kinds: [ eventKind.text ],
+        kinds: [ eventKind.text, 30023 ],
         authors: [`${paramsObj.nostrAuthor}`],
       } :
       {
-        kinds: [ eventKind.text ]
+        kinds: [ 1, 30023 ]
       }
       const maxPosts = `${paramsObj.nostrAuthor}` == '' ? 100 : 100
       const winkClassifier = WinkClassifier()
@@ -622,6 +642,16 @@ const App = () => {
         } path='/classifiers'
         />
         <Route element={<Main navBarWidth={navBarWidth} isOpen={isOpen}><div><Contribute /></div></Main>} path='/contribute' />
+        <Route
+          element={
+          <Main navBarWidth={navBarWidth} isOpen={isOpen}>
+            <Subscribers
+              albyIncomingInvoices={albyIncomingInvoices}
+            />
+          </Main>
+          }
+          path='/lightning'
+        />
         <Route element={
           <Main navBarWidth={navBarWidth} isOpen={isOpen}>
             <div>

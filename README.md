@@ -60,3 +60,28 @@ It may also be a good idea to offer a live service to reply with wink metrics fo
 
 wtf is wink stats()?
 https://winkjs.org/wink-naive-bayes-text-classifier/NaiveBayesTextClassifier.html#metrics
+
+
+User Story for business model:
+
+Actors:  
+
+reader address is set up to receive model updates via nostr private messages and use that model for filtering.  
+npub1cafega8qnkv60rw65fe5tunzn3ugxeeqttqlcmsjcgl7qjtkduzqg90tyg  
+log into https://hamstr.to/home to see private messages  
+
+trainer address contains incoming invoices with a memo (the readers address).  After a training session, the trainer publishes updates to the reader address via private nostr messages.
+log into https://cafe-society.news to train and publish
+
+market address  
+- classifieds page:  
+npub1cafejl3mpqwpdq5gysalv8f4kg8p5ezs9fpste9xkvava8lzptwqpc6fut  
+cafe@getalby.com  
+
+Steps:  
+- somebody needs to send alby lightning sats to the trainer address with a memo of the reader address
+- train trains, at the end of session, looks at trainer's invoices and sends a private message containing the new model to all the invoice memos.
+- reader can navigate to https://hamstr.to/home to see private messages.
+
+Sustanability:  
+- for trainers who wish to advertise a model on cafe-society.news, they send zaps to market address, with the ad in the memo field. Probably the memo will point to a web page or nostr message with details.
