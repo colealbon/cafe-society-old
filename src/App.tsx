@@ -1,6 +1,12 @@
 import { convert } from 'html-to-text'
 import {nip19} from 'nostr-tools'
-import { nip04, getPublicKey } from 'nostr-tools'
+import {
+  nip04,
+  getPublicKey,
+  relayInit,
+  getEventHash,
+  getSignature
+} from 'nostr-tools'
 
 import {
   createSignal,
@@ -255,6 +261,7 @@ const App = () => {
   const [albyCode, setAlbyCode] = createStoredSignal('albyCode', '')
   const [nostrQuery, setNostrQuery] = createSignal('')
   const [fetchRssParams, setFetchRssParams] = createSignal('')
+  const [eventToPublish, setEventToPublish] = createSignal()
 
   const ignoreNostrKeys = createDexieArrayQuery(() => db.nostrkeys
   .filter(nostrKey => nostrKey.ignore === true)
@@ -272,7 +279,28 @@ const App = () => {
     })
     setNostrQuery(newQuery)
   })
+
   const [nostrPosts] = createResource(nostrQuery, fetchNostrPosts);
+
+  createEffect(() => {
+    const event: any = eventToPublish()
+    const ourSecretKey = nostrKeys.find((keyWithSecretKey: NostrKey) => `${keyWithSecretKey.secretKey}` != '')
+    event.id = getEventHash(event)
+    event.sig = getSignature(event, `${ourSecretKey?.secretKey}`)
+    checkedNostrRelays.forEach(async (theRelay: any) => {
+      const relay = relayInit(theRelay.id)
+      await relay.connect
+      let pub = relay.publish(event)
+      pub.on('ok', () => {
+        console.log(`${relay.url} has accepted our event`)
+        relay.close()
+      })
+      pub.on('failed', () => {
+        relay.close()
+      })
+    })
+  })
+
   const [albyIncomingInvoices] = createResource(albyTokenReadInvoice, fetchAlbyInvoices)
 
   const [rssPosts] = createResource(fetchRssParams, fetchRssPosts);
@@ -560,8 +588,7 @@ const App = () => {
       tags: [['p', params.theirPublicKey]],
       content: ciphertext
     }
-    alert(JSON.stringify(event, null, 2))
-    // sendEvent(event)
+    setEventToPublish(event)
 }
 
   return (
