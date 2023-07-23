@@ -1,5 +1,7 @@
 import { convert } from 'html-to-text'
-import {nip19} from 'nostr-tools'
+import {
+  nip19
+} from 'nostr-tools'
 import {
   nip04,
   getPublicKey,
@@ -261,7 +263,13 @@ const App = () => {
   const [albyCode, setAlbyCode] = createStoredSignal('albyCode', '')
   const [nostrQuery, setNostrQuery] = createSignal('')
   const [fetchRssParams, setFetchRssParams] = createSignal('')
-  const [eventToPublish, setEventToPublish] = createSignal()
+  const [eventToPublish, setEventToPublish] = createSignal(
+    {
+      content: '',
+      id: '',
+      created_at: 0
+    }
+  )
 
   const ignoreNostrKeys = createDexieArrayQuery(() => db.nostrkeys
   .filter(nostrKey => nostrKey.ignore === true)
@@ -283,22 +291,37 @@ const App = () => {
   const [nostrPosts] = createResource(nostrQuery, fetchNostrPosts);
 
   createEffect(() => {
-    const event: any = eventToPublish()
-    const ourSecretKey = nostrKeys.find((keyWithSecretKey: NostrKey) => `${keyWithSecretKey.secretKey}` != '')
-    event.id = getEventHash(event)
-    event.sig = getSignature(event, `${ourSecretKey?.secretKey}`)
-    checkedNostrRelays.forEach(async (theRelay: any) => {
-      const relay = relayInit(theRelay.id)
-      await relay.connect
-      let pub = relay.publish(event)
-      pub.on('ok', () => {
-        console.log(`${relay.url} has accepted our event`)
-        relay.close()
+    try {
+      let event = {
+        ...eventToPublish() as object,
+      }
+      if (`${eventToPublish()?.content}` == '') {
+        return
+      }
+      if (event === undefined) {
+        return
+      }
+      const ourSecretKey = nostrKeys.find((keyWithSecretKey: NostrKey) => `${keyWithSecretKey.secretKey}` != '')
+      event.created_at = parseInt(Date.now() / 1000)
+      event.id = getEventHash(event)
+      event.sig = getSignature(event, `${ourSecretKey?.secretKey}`)
+      checkedNostrRelays.forEach(async (theRelay: any) => {
+        const relay = relayInit(theRelay.id)
+        await relay.connect
+        console.log(relay)
+        console.log(event)
+        let pub = relay.publish(event)
+        pub.on('ok', () => {
+          console.log(`${relay.url} has accepted our event`)
+          relay.close()
+        })
+        pub.on('failed', () => {
+          relay.close()
+        })
       })
-      pub.on('failed', () => {
-        relay.close()
-      })
-    })
+    } catch(error) {
+      console.log(error)
+    }
   })
 
   const [albyIncomingInvoices] = createResource(albyTokenReadInvoice, fetchAlbyInvoices)
