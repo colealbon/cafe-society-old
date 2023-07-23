@@ -1,5 +1,6 @@
 import { convert } from 'html-to-text'
 import {nip19} from 'nostr-tools'
+import { nip04, getPublicKey } from 'nostr-tools'
 
 import {
   createSignal,
@@ -253,7 +254,6 @@ const App = () => {
   const [albyCodeVerifier, setAlbyCodeVerifier] = createStoredSignal('albyCodeVerifier', '')
   const [albyCode, setAlbyCode] = createStoredSignal('albyCode', '')
   const [nostrQuery, setNostrQuery] = createSignal('')
-
   const [fetchRssParams, setFetchRssParams] = createSignal('')
 
   const ignoreNostrKeys = createDexieArrayQuery(() => db.nostrkeys
@@ -547,6 +547,23 @@ const App = () => {
     putFeed({...newValueObj} as Feed)
   }
 
+  const encryptAndPublish = async (params: {
+    theirPublicKey: string
+  }) => {
+    const ourSecretKey = nostrKeys.find((keyWithSecretKey: NostrKey) => `${keyWithSecretKey.secretKey}` != '')
+    const modelJSON = JSON.stringify(classifiers, null, 2)
+    let ciphertext = await nip04.encrypt(`${ourSecretKey?.secretKey}`, params.theirPublicKey, modelJSON)
+
+    let event = {
+      kind: 4,
+      pubkey: getPublicKey(`${ourSecretKey?.secretKey}`),
+      tags: [['p', params.theirPublicKey]],
+      content: ciphertext
+    }
+    alert(JSON.stringify(event, null, 2))
+    // sendEvent(event)
+}
+
   return (
   <div>
     <div class='openbtn'>
@@ -646,11 +663,13 @@ const App = () => {
           element={
           <Main navBarWidth={navBarWidth} isOpen={isOpen}>
             <Subscribers
+              encryptAndPublish={encryptAndPublish}
               albyIncomingInvoices={albyIncomingInvoices}
+              nostrKeys={nostrKeys}
             />
           </Main>
           }
-          path='/lightning'
+          path='/subscribers'
         />
         <Route element={
           <Main navBarWidth={navBarWidth} isOpen={isOpen}>

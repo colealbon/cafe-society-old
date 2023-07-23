@@ -191,7 +191,6 @@ const NostrKeys = (props: {
                   {nostrKey.label || nostrKey.publicKey && `${nostrKey.publicKey?.substring(0,5)}...${nostrKey.publicKey?.substring(nostrKey.publicKey?.length - 5, nostrKey.publicKey?.length)}` || ''}
                 </Link.Root>
               </div>
-
             </div>
           )}
         </For>
