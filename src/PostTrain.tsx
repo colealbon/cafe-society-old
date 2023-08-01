@@ -1,3 +1,6 @@
+import {
+  Show
+} from 'solid-js'
 import { Link } from "@kobalte/core";
 import { Tooltip } from "@kobalte/core";
 import {
@@ -21,7 +24,11 @@ const PostTrain = (props: {
 
   return(
     <div style={{"display": "flex", "flex-direction": 'row', 'justify-content':'space-around', 'width': '300px'}}>
-    <div>{(0.0 + props.prediction['suppress'] || 0.0).toFixed(2)}</div>
+    <div>
+      <Show when={(0.0 + props.prediction['suppress'] || 0.0) > 0}>
+        {(0.0 + props.prediction['suppress'] || 0.0).toFixed(2)}
+      </Show>
+    </div>
     <AiOutlineArrowDown class="collapsible__trigger-icon button" onclick={() => setTimeout(() => {
         props.markComplete()
         handleTrain('suppress')
@@ -38,7 +45,12 @@ const PostTrain = (props: {
           {props.docCount ? `ML document count: ${props.docCount}` : `more training required for predictions ${JSON.stringify(props.prediction, null, 2)}`}
           </div>
           <div>
-            {props.mlText}
+          {`prediction: ${(0.0 + props.prediction['promote'] || 0.0) > 0 ? 'promote' : 'suppress'}`}
+          </div>
+          <div>
+          {`odds: ${(0.0 + props.prediction['promote'] || 0.0)
+          .toFixed(2)
+          .replace('NaN', '-')}`}
           </div>
           </div>
         </Tooltip.Content>
@@ -51,13 +63,6 @@ const PostTrain = (props: {
             handleTrain('promote')
           }, 300)
       }/>
-      <div>
-        {
-          (0.0 + props.prediction['promote'] || 0.0)
-          .toFixed(2)
-          .replace('NaN', '-')
-        }
-      </div>
       <div/>
       <div/>
     </div>
