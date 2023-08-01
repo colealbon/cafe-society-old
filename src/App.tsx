@@ -1,8 +1,6 @@
 import { convert } from 'html-to-text'
 import {
-  nip19
-} from 'nostr-tools'
-import {
+  nip19,
   nip04,
   getPublicKey,
   relayInit,
@@ -353,6 +351,7 @@ const App = () => {
     .toArray());
 
   const putFeed = async (newFeed: Feed) => {
+    console.log(newFeed)
     await newFeed?.id && db.feeds.put(newFeed)
   }
 
@@ -449,6 +448,9 @@ const App = () => {
   })
 
   function fetchAlbyInvoices(albyTokenReadInvoice: string) {
+    if (`${albyTokenReadInvoice}` == '') {
+      return Promise.resolve({data:[]})
+    }
     const axiosForAlby = axios.create({
       baseURL: 'https://api.getalby.com'
     });
@@ -463,6 +465,7 @@ const App = () => {
       .filter((npub: {type: String, data: any}) => npub.type === 'npub')
       .map((npub: {type: String, data: any}) => npub.data)
     )
+    .catch(() => setAlbyTokenReadInvoice(''))
   }
 
   function fetchNostrPosts(params: string) {
@@ -742,7 +745,7 @@ const App = () => {
           >
             <Feeds
               feeds={feeds}
-              putFeed={() => putFeed}
+              putFeed={putFeed}
               removeFeed={removeFeed}
               trainLabels={trainLabels}
               handleFeedToggleChecked={(id: string) => handleFeedToggleChecked(id)}

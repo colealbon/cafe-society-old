@@ -6,6 +6,11 @@ const defaultFeeds =
     "trainLabels": ["medicine"]
   },
   {
+    "id": "https://hnrss.org/jobs",
+      "checked": true,
+      "trainLabels": ["jobs"]
+  },
+  {
     "id": "https://www.web3daily.co/articles?format=rss",
     "checked": false,
     "trainLabels": ["bitcoin"]

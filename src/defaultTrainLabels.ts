@@ -5,6 +5,7 @@ const defaultTrainLabels= [
   { "id": "bitcoin", "checked": true },
   { "id": "local", "checked": true },
   { "id": "business", "checked": true },
+  { "id": "jobs", "checked": true },
   { "id": "world", "checked": true },
   { "id": "politics", "checked": true },
   { "id": "technology", "checked": false },
