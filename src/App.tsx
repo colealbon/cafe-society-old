@@ -482,7 +482,7 @@ const App = () => {
       {
         kinds: [ 1, 30023 ]
       }
-      const maxPosts = `${paramsObj.nostrAuthor}` == '' ? 100 : 100
+      const maxPosts = `${paramsObj.nostrAuthor}` == '' ? 1000 : 1000
       const winkClassifier = WinkClassifier()
       winkClassifier.definePrepTasks( [ prepTask ] );
       winkClassifier.defineConfig( { considerOnlyPresence: true, smoothingFactor: 0.5 } );
@@ -499,9 +499,14 @@ const App = () => {
       .then((allThePosts: any) => {
         const processedNostrPosts = processedPosts.find((processedPostsEntry) => processedPostsEntry?.id == 'nostr')?.processedPosts
         const suppressOdds = classifiers.find((classifierEntry) => classifierEntry?.id == 'nostr')?.thresholdSuppressOdds
-        resolve(
-          allThePosts
+        const filteredPosts = allThePosts
           .filter((nostrPost: any) => `${nostrPost.mlText}`.replace(' ','') != '')
+          .filter((nostrPost: any) => {
+            return Object.fromEntries(nostrPost.tags)['e'] == null
+          })
+          .filter((nostrPost: any) => {
+            return nostrPost.content.replace('vmess:','').length == nostrPost.content.length
+          })
           .filter((nostrPost: any) => !ignoreNostrKeys.find((ignoreKey: {publicKey: string}) => ignoreKey.publicKey == nostrPost.pubkey))
           .map((nostrPost: any) => prepNostrPost(nostrPost))
           .filter((nostrPost: any) => {
@@ -512,9 +517,12 @@ const App = () => {
             classifier: winkClassifier
           }))
           .filter((post: any) => {
+            return (post.mlText != '')
+          })
+          .filter((post: any) => {
             return (post.prediction?.suppress || 0) <= (suppressOdds || 0)
           })
-        )
+        resolve(filteredPosts)
       })
     })
   }
