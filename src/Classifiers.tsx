@@ -93,7 +93,8 @@ const Classifiers = (props: {
         model:'',
         thresholdSuppressDocCount: '',
         thresholdPromoteDocCount: '',
-        thresholdSuppressOdds: ''
+        thresholdSuppressOdds: '',
+        thresholdPromoteOdds: ''
       }, valuesForSelectedClassifier))
   }
 

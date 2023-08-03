@@ -83,6 +83,22 @@ const Feeds = (props: {
     setTrainLabelValues([])
   };
 
+  const handleToggleChecked = (id: string, newVal: boolean) => {
+    const valuesForSelectedFeed = props.feeds
+    .find(feedEdit => feedEdit['id'] === id)
+    const newValueObj = (Object.assign(
+      {id: '', trainLabels: []},
+      {
+        ...valuesForSelectedFeed
+      },
+      {checked: newVal}
+    ))
+    group.setValue (newValueObj)
+    setTrainLabelValues(valuesForSelectedFeed?.trainLabels as string[])
+    newValueObj.trainLabels = [...trainLabelValues()]
+    props.putFeed(newValueObj)
+  }
+
   const handleKeyClick = (id: string) => {
     const valuesForSelectedFeed = props.feeds
       .find(feedEdit => feedEdit['id'] === id)
@@ -108,7 +124,7 @@ const Feeds = (props: {
         onChange={setTrainLabelValues}
         onInputChange={onInputChange}
         onOpenChange={onOpenChange}
-        placeholder="Search some fruits…"
+        placeholder="Search some feeds…"
         itemComponent={props => (
           <Combobox.Item item={props.item}>
             <Combobox.ItemLabel>{props.item.rawValue}</Combobox.ItemLabel>
@@ -135,7 +151,7 @@ const Feeds = (props: {
       }}>Submit</Button.Root>
     </div>
     </form>
-        <Combobox.Control<string> aria-label="Fruits">
+        <Combobox.Control<string> aria-label="Feeds">
           {state => (
             <>
               <div>
@@ -185,10 +201,11 @@ const Feeds = (props: {
                     <Switch.Root
                       class="switch"
                       defaultChecked={feed.checked}
-                      onClick={() => {
-                        props.handleFeedToggleChecked(feed.id)
-                        alert('toggle does not work yet - DTMF/ATMF instead')
-                        alert('then give us some money:  https://getalby.com/p/cafe')
+                      // onClick={() => {
+                      //   props.handleFeedToggleChecked(feed.id)
+                      // }}
+                      onChange={(newVal) => {
+                        handleToggleChecked(`${feed.id}`, newVal)
                       }}
                     >
                       <Switch.Input class="switch__input" />

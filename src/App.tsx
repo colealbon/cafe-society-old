@@ -291,6 +291,7 @@ const App = () => {
   createEffect(() => {
     try {
       let event = {
+        created_at: 0 as number,
         ...eventToPublish() as object,
       }
       if (`${eventToPublish()?.content}` == '') {

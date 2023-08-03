@@ -54,73 +54,42 @@ createEffect(() => {
         </Heading>
       </div>
       <For each={props.rssPosts?.flat()} fallback={<div class='fade-in-slow'>LOADING</div>}>
-  {(post) => {
-    const processedPostsID = post.feedLink === "" ? post.guid : shortUrl(post.feedLink)
-    return (
-      <Suspense>
-      {
-        <Collapsible.Root class="collapsible" defaultOpen={true}>
-          <Collapsible.Content class="collapsible__content">
-            <p class="collapsible__content-text">
+        {(post) => {
+          const processedPostsID = post.feedLink === "" ? post.guid : shortUrl(post.feedLink)
+          return (
+            <Suspense>
             {
-              <>
-                <PostDisplay {...post}/>
-                <Collapsible.Trigger class="collapsible__trigger">
-                <PostTrain
-                  trainLabel={props.trainLabel}
-                  train={(mlClass: string) => {
-                    props.train({
-                      mlClass: mlClass,
-                      mlText: post.mlText
-                    })
-                  }}
-                  mlText={post.mlText}
-                  prediction={post.prediction}
-                  docCount={post.docCount}
-                  markComplete={() => props.markComplete(post.mlText, processedPostsID)}
-                />
-                  {/* <PostTrain
-                    category={props.category}
-                    classifierJSON={classifierJSON()}
-                    setClassifier={setClassifier}
-                    mlText={post?.mlText}
-                    prediction={post.prediction}
-                    postId={`${post.feedLink}` === '' ? post.guid : shortUrl(post.feedLink)}
-                    putProcessedPost={props.putProcessedPost}
-                    putClassifier={props.putClassifier}
-                    setProcessedPostsForSession={setProcessedPostsForSession}
-                    processedPostsForSession={processedPostsForSession()}
-                    docCount={post.docCount}
-                  /> */}
-                </Collapsible.Trigger>
-                </>
+              <Collapsible.Root class="collapsible" defaultOpen={true}>
+                <Collapsible.Content class="collapsible__content">
+                  <p class="collapsible__content-text">
+                  {
+                    <>
+                      <PostDisplay {...post}/>
+                      <Collapsible.Trigger class="collapsible__trigger">
+                      <PostTrain
+                        trainLabel={props.trainLabel}
+                        train={(mlClass: string) => {
+                          props.train({
+                            mlClass: mlClass,
+                            mlText: post.mlText
+                          })
+                        }}
+                        mlText={post.mlText}
+                        prediction={post.prediction}
+                        docCount={post.docCount}
+                        markComplete={() => props.markComplete(post.mlText, processedPostsID)}
+                      />
+                      </Collapsible.Trigger>
+                      </>
+                    }
+                    </p>
+                  </Collapsible.Content>
+                </Collapsible.Root>
               }
-              </p>
-            </Collapsible.Content>
-          </Collapsible.Root>
-        }
-      </Suspense>
-    )}}
-</For>
+            </Suspense>
+          )}}
+      </For>
     </div>
   )
 }
 export default Posts;
-
-// props.posts()
-// .filter((postItem: {mlText: string}) => {
-//   const theMlText = postItem?.mlText?.toString()
-//   return [...Array.from(processedPostsForSession())].indexOf(theMlText) == -1
-// })
-// .filter((postItem: any) => {
-//   const theMlText = postItem?.mlText?.toString()
-//   const processedPostsID = postItem.feedLink === "" ? postItem.guid : shortUrl(postItem.feedLink)
-//   const processedPostsForFeedLink = [props.processedPosts].flat().slice()
-//     .find((processedPostEntry: any) => processedPostEntry?.id === processedPostsID)?.processedPosts
-//   if (processedPostsForFeedLink == undefined) {
-//     return true
-//   }
-//   return processedPostsForFeedLink.indexOf(theMlText) == -1
-// })
-// .map((post: any) => applyPrediction(post, classifierJSON()))
-// } fallback={<div class='fade-in-slow'>LOADING</div>}
