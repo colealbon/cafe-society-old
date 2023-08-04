@@ -31,7 +31,8 @@ const Classifiers = (props: {
     model: createFormControl(""),
     thresholdSuppressDocCount: createFormControl(''),
     thresholdPromoteDocCount: createFormControl(''),
-    thresholdSuppressOdds: createFormControl('')
+    thresholdSuppressOdds: createFormControl(''),
+    thresholdPromoteOdds: createFormControl('')
   });
 
   const onSubmit = async (event) => {
@@ -46,7 +47,8 @@ const Classifiers = (props: {
         model:'',
         thresholdSuppressDocCount: '',
         thresholdPromoteDocCount: '',
-        thresholdSuppressOdds: ''
+        thresholdSuppressOdds: '',
+        thresholdPromoteOdds: ''
       }, group.value))
       .filter(([, value]) => `${value}` !== '')
     )]
@@ -57,7 +59,8 @@ const Classifiers = (props: {
           model: '',
           thresholdSuppressDocCount: '',
           thresholdPromoteDocCount: '',
-          thresholdSuppressOdds: ''
+          thresholdSuppressOdds: '',
+          thresholdPromoteOdds: ''
         },
         ...newClassifier
       }
@@ -69,7 +72,8 @@ const Classifiers = (props: {
       model:'',
       thresholdSuppressDocCount: '',
       thresholdPromoteDocCount: '',
-      thresholdSuppressOdds: ''
+      thresholdSuppressOdds: '',
+      thresholdPromoteOdds: ''
     })
   };
 
@@ -81,7 +85,8 @@ const Classifiers = (props: {
       model: '',
       thresholdSuppressDocCount: '',
       thresholdPromoteDocCount: '',
-      thresholdSuppressOdds: ''
+      thresholdSuppressOdds: '',
+      thresholdPromoteOdds: ''
     })
   }
 

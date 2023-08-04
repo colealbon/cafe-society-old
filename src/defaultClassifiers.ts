@@ -9,6 +9,7 @@ const defaultClassifiers = [
   { "id": "politics", "thresholdSuppressDocCount": "500", "thresholdPromoteDocCount": "500", "model": "", "thresholdSuppressOdds": "","thresholdPromoteOdds": "" },
   { "id": "technology", "thresholdSuppressDocCount": "500", "thresholdPromoteDocCount": "500", "model": "", "thresholdSuppressOdds": "","thresholdPromoteOdds": "" },
   { "id": "variety", "thresholdSuppressDocCount": "500", "thresholdPromoteDocCount": "500", "model": "", "thresholdSuppressOdds": "","thresholdPromoteOdds": "" },
-  { "id": "medicine", "thresholdSuppressDocCount": "500", "thresholdPromoteDocCount": "500", "model": "", "thresholdSuppressOdds": "","thresholdPromoteOdds": ""}
+  { "id": "medicine", "thresholdSuppressDocCount": "500", "thresholdPromoteDocCount": "500", "model": "", "thresholdSuppressOdds": "","thresholdPromoteOdds": ""},
+  { "id": "nostr", "thresholdSuppressDocCount": "500", "thresholdPromoteDocCount": "500", "model": "", "thresholdSuppressOdds": "","thresholdPromoteOdds": ""}
 ]
 export default defaultClassifiers
