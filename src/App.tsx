@@ -352,7 +352,6 @@ const App = () => {
     .toArray());
 
   const putFeed = async (newFeed: Feed) => {
-    console.log(newFeed)
     await newFeed?.id && db.feeds.put(newFeed)
   }
 

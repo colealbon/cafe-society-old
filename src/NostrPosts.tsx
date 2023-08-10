@@ -115,6 +115,12 @@ const NostrPosts = (props: {
                         }}>
                           {`${post.pubkey.substring(0,5)}...${post.pubkey.substring(post.pubkey.length - 5)}`}
                         </Link.Root>
+                        <Link.Root onClick={(event) => {
+                          event.preventDefault()
+                          handleIgnore(post.pubkey)
+                        }}>
+                          <IoRemoveCircleOutline />
+                        </Link.Root>
 
                         <div style={{'color': 'grey'}}>{`${parseInt((((Date.now() / 1000) - parseFloat(post.created_at)) / 60).toString())} minutes ago`}</div>
                         <div>
