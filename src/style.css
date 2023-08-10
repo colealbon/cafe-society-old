@@ -291,19 +291,6 @@ button {
   text-align: center;
 }
 
-.maintransition {
-  transition: margin-left .3s;
-}
-
-.main {
-  transition: margin-left .3s;
-  padding: 0px 20px 0px 0px;
-  text-decoration: none;
-  font-size: 25px;
-  display: block;
-  transition: 0.3s;
-}
-
 .fade-in {
 	opacity: 1;
 	animation-name: fadeInOpacity;
