@@ -576,6 +576,9 @@ const App = () => {
             .replace(/&#8211;/g, "-")
             .replace(/&#8216;/g, "'")
             .replace(/&#038;/g, "&")
+            .replace(/&#x2019;/g,"'")
+            .replace(/&#x2018;/g,"'")
+
           }
         })
         .filter((postItem: any) => {

@@ -29,10 +29,7 @@ const Classifiers = (props: {
   const group = createFormGroup({
     id: createFormControl(""),
     model: createFormControl(""),
-    thresholdSuppressDocCount: createFormControl(''),
-    thresholdPromoteDocCount: createFormControl(''),
-    thresholdSuppressOdds: createFormControl(''),
-    thresholdPromoteOdds: createFormControl('')
+    thresholdSuppressOdds: createFormControl('')
   });
 
   const onSubmit = async (event) => {
@@ -45,10 +42,7 @@ const Classifiers = (props: {
       Object.entries(Object.assign({
         id:'',
         model:'',
-        thresholdSuppressDocCount: '',
-        thresholdPromoteDocCount: '',
-        thresholdSuppressOdds: '',
-        thresholdPromoteOdds: ''
+        thresholdSuppressOdds: ''
       }, group.value))
       .filter(([, value]) => `${value}` !== '')
     )]
@@ -57,10 +51,7 @@ const Classifiers = (props: {
         ...{
           id: '',
           model: '',
-          thresholdSuppressDocCount: '',
-          thresholdPromoteDocCount: '',
-          thresholdSuppressOdds: '',
-          thresholdPromoteOdds: ''
+          thresholdSuppressOdds: ''
         },
         ...newClassifier
       }
@@ -70,10 +61,7 @@ const Classifiers = (props: {
     group.setValue({
       id:'',
       model:'',
-      thresholdSuppressDocCount: '',
-      thresholdPromoteDocCount: '',
-      thresholdSuppressOdds: '',
-      thresholdPromoteOdds: ''
+      thresholdSuppressOdds: ''
     })
   };
 
@@ -83,10 +71,7 @@ const Classifiers = (props: {
     group.setValue({
       id:'',
       model: '',
-      thresholdSuppressDocCount: '',
-      thresholdPromoteDocCount: '',
-      thresholdSuppressOdds: '',
-      thresholdPromoteOdds: ''
+      thresholdSuppressOdds: ''
     })
   }
 
@@ -96,10 +81,7 @@ const Classifiers = (props: {
     group.setValue(Object.assign({
         id:'',
         model:'',
-        thresholdSuppressDocCount: '',
-        thresholdPromoteDocCount: '',
-        thresholdSuppressOdds: '',
-        thresholdPromoteOdds: ''
+        thresholdSuppressOdds: ''
       }, valuesForSelectedClassifier))
   }
 
@@ -126,14 +108,6 @@ const Classifiers = (props: {
       <label for="thresholdSuppressOdds">Threshold Suppress Odds</label>
       <TextInput name="thresholdSuppressOdds" control={group.controls.thresholdSuppressOdds} />
       <div />
-      <div style={{'display': 'none'}}>
-        <label for="thresholdSuppressDocCount">Threshold Suppress Doc Count</label>
-        <TextInput name="thresholdSuppressDocCount" control={group.controls.thresholdSuppressDocCount} />
-        <div />
-        <label for="thresholdPromoteDocCount">Threshold Promote Doc Count</label>
-        <TextInput name="thresholdPromoteDocCount" control={group.controls.thresholdPromoteDocCount} />
-        <div />
-      </div>
       <label for="Model">Bayes Model</label>
       <TextInput name="model" control={group.controls.model} />
       <div>
