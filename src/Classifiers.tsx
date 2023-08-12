@@ -78,11 +78,12 @@ const Classifiers = (props: {
   const handleKeyClick = (id: string) => {
     const valuesForSelectedClassifier = props.classifiers
       .find(classifierEdit => classifierEdit['id'] === id)
-    group.setValue(Object.assign({
-        id:'',
-        model:'',
-        thresholdSuppressOdds: ''
-      }, valuesForSelectedClassifier))
+    const newClassifier: any = {
+      id: `${valuesForSelectedClassifier?.id}`,
+      model: `${valuesForSelectedClassifier?.model}`,
+      thresholdSuppressOdds: `${valuesForSelectedClassifier?.thresholdSuppressOdds}`
+    }
+    group.setValue(newClassifier)
   }
 
   const handleCopyClick = () => {
